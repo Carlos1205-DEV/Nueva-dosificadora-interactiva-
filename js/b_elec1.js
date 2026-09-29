@@ -10,6 +10,9 @@
     /* ---------- helpers de gabinete: coordenadas locales (u a la derecha, v arriba, w hacia el frente desde la placa) ---------- */
     const back = c => c.z - c.d / 2;
     const Tp = (u, v, w) => [T.x + u, T.y + v, back(T) + 0.03 + (w || 0)];
+    // coordenadas de la placa de montaje del armario alto (plano del Excel): u desde el borde izquierdo y v desde arriba, en mm
+    const PL = (u, v, w) => [T.x + u / 1000 - 0.33, T.y + 0.81 - v / 1000, back(T) + 0.03 + (w || 0)];
+    K.PL = PL;
     const Sp = (u, v, w) => [SM.x + u, SM.y + v, back(SM) + 0.03 + (w || 0)];
     K.Tp = Tp; K.Sp = Sp;
     function railDIN(g, w, at) { g.add(rbox(w, 0.035, 0.007, 0.001, 'steelDark', { pos: [at[0], at[1], at[2] - 0.004], cast: false })); }
@@ -98,114 +101,107 @@
       });
     }
 
+    /* ---------- utilidades de la placa de montaje del armario alto (plano del Excel: 660 × 1620 mm) ---------- */
+    function dev(g, u, v, wm, hm, d, m, o) { return block(g, wm / 1000, hm / 1000, d, PL(u, v, d / 2), m, o); }
+    function tag(g, u, v, txt, wm, hm, d, o) { const p = PL(u, v, d + 0.0016); g.add(label(txt, wm / 1000, hm / 1000, Object.assign({ bg: '#0f1418', fs: 20, pos: [p[0], p[1], p[2]] }, o || {}))); }
+    function ductAt(g, u, v, wm, hm) { g.add(rbox(wm / 1000, hm / 1000, 0.045, 0.004, 'lightGray', { pos: PL(u, v, 0.024) })); for (let i = 0; i < Math.floor(wm >= hm ? wm / 7 : hm / 7); i++) { const off = -(wm >= hm ? wm : hm) / 2 + 4 + i * 7; g.add(box(wm >= hm ? 0.0015 : wm / 1000 - 0.004, wm >= hm ? hm / 1000 - 0.004 : 0.0015, 0.001, 'gray', { pos: PL(u + (wm >= hm ? off : 0), v + (wm >= hm ? 0 : off), 0.0478), cast: false })); } }
+    const DOORT = k => { K.elemDoor[k] = 'tall'; };
+    // canaletas ranuradas y rieles DIN de la placa (plano: 806077, 804077, 808077, 803077)
+    {
+      const duc = new THREE.Group(); duc.name = 'gabinete:canaletas'; duc.userData.comp = 'gabinete'; comps.gabinete.add(duc);
+      ductAt(duc, 330, 205, 574, 60); ductAt(duc, 330, 433, 574, 43); ductAt(duc, 330, 695, 574, 60); ductAt(duc, 330, 927, 574, 60); ductAt(duc, 246, 1208, 406, 43); ductAt(duc, 351, 1580, 617, 80);
+      ductAt(duc, 638, 600, 43, 850); ductAt(duc, 193, 88, 30, 175); ductAt(duc, 339, 1390, 60, 300); ductAt(duc, 409, 1390, 80, 300);
+      [110, 325, 560, 810, 1067, 1390].forEach(v => duc.add(rbox(0.56, 0.035, 0.007, 0.001, 'steelDark', { pos: PL(330, v + 65, 0.0), cast: false })));
+    }
+
     /* =========================================================
-     *  CPU Y CONEXIONES (4)  — armario pequeño
+     *  CPU Y CONEXIONES (4) — armario alto (posición A1 / A2 / A3-A4 del plano)
      * ========================================================= */
     {
       const C = 'cpu', g1 = el(C, 1), g2 = el(C, 2), g3 = el(C, 3), g4 = el(C, 4);
-      K.elemDoor['cpu:1'] = K.elemDoor['cpu:2'] = K.elemDoor['cpu:4'] = 'small';
-      // riel DIN y canaleta del armario pequeño
-      const rails = new THREE.Group(); rails.name = 'cpu:rieles'; rails.userData.comp = C; comps[C].add(rails);
-      [0.13, -0.04, -0.16].forEach(v => railDIN(rails, 0.44, Sp(0, v, 0)));
-      [0.2, -0.2].forEach(v => duct(rails, 0.44, 0.04, Sp(0, v, 0), true));
-      // 1 CPU compact GuardLogix motion safety 5069-L330ERMS2 + bornera RTB64 (2)
-      const p1 = Sp(-0.14, 0.13, 0.0); K.elemDoor['cpu:1'] = 'small';
-      block(g1, 0.075, 0.13, 0.085, [p1[0], p1[1] - 0.005, p1[2] + 0.04], 'abLight', { face: 'black', leds: 4 });
-      g1.add(label('GuardLogix\n5069-L330ERMS2', 0.06, 0.03, { bg: '#22282e', fs: 24, pos: [p1[0], p1[1] + 0.03, p1[2] + 0.0835] }));
-      [0, 1].forEach(i => g1.add(box(0.05, 0.008, 0.004, 'black', { pos: [p1[0], p1[1] - 0.045 - i * 0.012, p1[2] + 0.083], cast: false })));
-      g2.add(rbox(0.09, 0.04, 0.05, 0.004, 'black', { pos: [p1[0], p1[1] + 0.09, p1[2] + 0.02] })); for (let i = 0; i < 16; i++) g2.add(box(0.004, 0.02, 0.012, 'steelDark', { pos: [p1[0] - 0.038 + i * 0.005, p1[1] + 0.09, p1[2] + 0.048], cast: false }));
-      g2.add(rbox(0.09, 0.04, 0.05, 0.004, 'black', { pos: [p1[0], p1[1] - 0.09, p1[2] + 0.02] })); for (let i = 0; i < 16; i++) g2.add(box(0.004, 0.02, 0.012, 'steelDark', { pos: [p1[0] - 0.038 + i * 0.005, p1[1] - 0.09, p1[2] + 0.048], cast: false }));
-      // 3 adaptador Ethernet Point I/O 1734-AENT: se monta en el riel del armario grande (ver módulos)
-      const pa = Sp(0.0, -0.04, 0.0);
-      block(g3, 0.05, 0.12, 0.075, [pa[0], pa[1], pa[2] + 0.04], 'abLight', { face: 'black', leds: 3 });
-      g3.add(label('1734-AENT', 0.04, 0.02, { bg: '#22282e', fs: 24, pos: [pa[0], pa[1] + 0.03, pa[2] + 0.0785] })); [-1, 1].forEach(s => g3.add(box(0.012, 0.01, 0.006, 'black', { pos: [pa[0] + s * 0.014, pa[1] - 0.035, pa[2] + 0.079], cast: false })));
-      // 4 switches 8 puertos no gestionados ×2
-      [0.14, 0.2].forEach(u => { const p = Sp(u - 0.02, -0.04, 0); block(g4, 0.058, 0.09, 0.055, [p[0], p[1], p[2] + 0.03], 'gray', { face: 'black', leds: 8 }); for (let i = 0; i < 8; i++) g4.add(box(0.005, 0.008, 0.004, 'black', { pos: [p[0] - 0.024 + i * 0.0068, p[1] - 0.03, p[2] + 0.0575], cast: false })); });
-      // latiguillos internos
-      g4.add(hose([[p1[0] + 0.0, p1[1] - 0.05, p1[2] + 0.085], [p1[0] + 0.05, p1[1] - 0.09, p1[2] + 0.11], [pa[0], pa[1] - 0.03, pa[2] + 0.085]], 0.0035, 'cableBlue', { radial: 8 }));
+      ['cpu:1', 'cpu:2', 'cpu:3', 'cpu:4'].forEach(DOORT);
+      // 1 CPU compact GuardLogix motion safety 5069-L330ERMS2 (A1) + 2 kit de conectores RTB64 arriba y abajo
+      dev(g1, 545, 560, 100, 190, 0.085, 'abLight', { face: 'black', leds: 4 });
+      tag(g1, 545, 505, 'Rockwell Automation\n5069-L330ERMS2', 88, 30, 0.085, { fs: 16, bg: '#22282e' });
+      [0, 1].forEach(i => { const p = PL(545, 470 - i * 30, 0.0855); g1.add(box(0.05, 0.008, 0.004, 'black', { pos: p, cast: false })); });
+      g1.add(box(0.014, 0.03, 0.004, 'black', { pos: PL(568, 560, 0.0855), cast: false }));
+      [[545, 435], [545, 685]].forEach(p => { dev(g2, p[0], p[1], 100, 40, 0.05, 'black'); const q = PL(p[0], p[1], 0.052); for (let i = 0; i < 16; i++) g2.add(box(0.004, 0.02, 0.006, 'steelDark', { pos: [q[0] - 0.038 + i * 0.005, q[1], q[2]], cast: false })); });
+      // 3 adaptador Ethernet Point I/O 1734-AENT (A2), cabecera de la fila de módulos
+      dev(g3, 262, 100, 50, 130, 0.075, 'abLight', { face: 'black', leds: 3 }); tag(g3, 262, 70, '1734-AENT', 42, 16, 0.075, { fs: 22 }); [-1, 1].forEach(s => g3.add(box(0.012, 0.01, 0.006, 'black', { pos: PL(262 + s * 14, 130, 0.0785), cast: false })));
+      // 4 switches de 8 puertos no gestionados ×2 (A3, A4)
+      [530, 585].forEach(u => { dev(g4, u, 105, 45, 130, 0.055, 'gray', { face: 'black', leds: 8 }); for (let i = 0; i < 8; i++) g4.add(box(0.005, 0.008, 0.004, 'black', { pos: PL(u - 16 + i * 4.6, 155, 0.0575), cast: false })); });
+      g4.add(hose([PL(545, 470, 0.09), PL(500, 380, 0.13), PL(560, 150, 0.09)], 0.0035, 'cableBlue', { radial: 8 }));
       explode(g1, 0, 0, 0.4);
     }
 
     /* =========================================================
-     *  MÓDULOS POINT I/O (9)  — armario alto
+     *  MÓDULOS POINT I/O (9) — fila superior del plano, en el orden del dibujo (imagen 77)
+     *  AENT · 3×IB8S · 5×IB8 · EP24DC · OB8S · OB8 · FPD · OE2C (+ IE4C)
      * ========================================================= */
     {
-      const C = 'io', v0 = 0.6, w = 0.0125;
-      const eg = {}; for (let i = 1; i <= 9; i++) { eg[i] = el(C, i); K.elemDoor['io:' + i] = 'tall'; }
-      const rails = new THREE.Group(); rails.name = 'io:riel'; rails.userData.comp = C; comps[C].add(rails); railDIN(rails, 0.6, Tp(0, v0, 0)); duct(rails, 0.6, 0.04, Tp(0, v0 + 0.11, 0), true);
-      // cabecera: FPD (9) y EP24DC (8) + 12 bases (2) con módulos
-      const order = [[8, 'red'], [1, 'abLight'], [1, 'abLight'], [1, 'abLight'], [1, 'abLight'], [1, 'abLight'], [3, 'abLight'], [3, 'abLight'], [3, 'abLight'], [4, 'abLight'], [5, 'abLight'], [6, 'abLight'], [7, 'abLight']];
-      // orden real: 1=IB8 ×5, 3=IB8S ×3, 4=IE4C, 5=OB8, 6=OB8S, 7=OE2C ; 8=EP24DC, 9=FPD
-      const seq = [8, 1, 1, 1, 1, 1, 3, 3, 3, 4, 5, 6, 7, 9];
-      let u = -0.27; const baseGeom = new THREE.BoxGeometry(w, 0.05, 0.05);
-      const baseList = [];
-      seq.forEach((id, k) => {
-        const p = Tp(u, v0, 0), isPower = id === 8 || id === 9;
-        if (!isPower) baseList.push({ p: [p[0], p[1] - 0.045, p[2] + 0.025] });
-        const colorMod = (id === 3 || id === 6) ? 'red' : (id === 4 || id === 7) ? 'blueLight' : (id === 5 ? 'abLight' : (id === 1 ? 'abLight' : 'gray'));
-        block(eg[id === 8 ? 8 : id === 9 ? 9 : id], w * 0.95, isPower ? 0.09 : 0.075, 0.062, [p[0], p[1] + (isPower ? -0.0 : 0.012), p[2] + 0.037], isPower ? 'gray' : 'abLight', { leds: 3 });
-        if (id === 3 || id === 6) eg[id].add(box(w * 0.9, 0.012, 0.003, 'red', { pos: [p[0], p[1] + 0.045, p[2] + 0.0685], cast: false }));
-        if (id === 4 || id === 7) eg[id].add(box(w * 0.9, 0.012, 0.003, 'blueLight', { pos: [p[0], p[1] + 0.045, p[2] + 0.0685], cast: false }));
-        u += w + 0.0015 + (id === 8 ? 0.006 : 0);
+      const C = 'io', eg = {}; for (let i = 1; i <= 9; i++) { eg[i] = el(C, i); DOORT('io:' + i); }
+      const seq = [3, 3, 3, 1, 1, 1, 1, 1, 8, 6, 5, 9, 7, 4];    // io:n según la tabla de la taxonomía (ver comentario)
+      let u = 262 + 25 + 1; const bases = [];
+      seq.forEach(id => {
+        const power = id === 8 || id === 9, w = power ? 24 : 12.2;
+        const uc = u + w / 2; u += w + 0.4;
+        dev(eg[id], uc, 88, w - 0.4, power ? 118 : 96, 0.062, power ? 'lightGray' : 'abLight', { leds: 3 });
+        if (id === 3 || id === 6) eg[id].add(box((w - 1) / 1000, 0.012, 0.003, 'red', { pos: PL(uc, 50, 0.0635), cast: false }));
+        if (id === 4 || id === 7) eg[id].add(box((w - 1) / 1000, 0.012, 0.003, 'blueLight', { pos: PL(uc, 50, 0.0635), cast: false }));
+        if (power) tag(eg[id], uc, 96, id === 8 ? '1734-EP24DC' : '1734-FPD', 20, 44, 0.062, { fs: 18, bg: '#e6e9ec', fg: '#1a3f8c' });
+        if (!power) bases.push(uc);
       });
-      eg[2].add(inst(baseGeom, 'gray', baseList));
-      // etiquetas de identificación (una placa por familia)
-      eg[1].add(label('1734-IB8 ×5', 0.06, 0.012, { bg: '#0f1418', fs: 18, pos: [Tp(-0.27 + 3 * w, v0, 0)[0] + 0.02, Tp(0, v0, 0)[1] - 0.05, Tp(0, v0, 0)[2] + 0.0715] }));
+      // 2 bases TB ×12 con sus bornes
+      eg[2].add(K.inst(K.geo('tbBase', () => new THREE.BoxGeometry(0.0118, 0.052, 0.05)), 'gray', bases.map(x => ({ p: PL(x, 175, 0.025) }))));
+      eg[2].add(K.inst(K.geo('tbTerm', () => new THREE.BoxGeometry(0.008, 0.004, 0.004)), 'steel', bases.flatMap(x => [0, 1, 2, 3].map(k => ({ p: PL(x, 160 + k * 8, 0.052) })))));
+      tag(eg[1], 330, 25, '1734-IB8 ×5', 56, 12, 0.062, { fs: 16 });
       explode(eg[1], 0, 0, 0.5);
     }
 
     /* =========================================================
-     *  CONTADORES Y PROTECCIÓN (15)
+     *  CONTADORES Y PROTECCIÓN (15) — filas B, C y D del plano
      * ========================================================= */
     {
-      const C = 'proteccion', eg = {}; for (let i = 1; i <= 15; i++) { eg[i] = el(C, i); K.elemDoor['proteccion:' + i] = 'tall'; }
-      const rails = new THREE.Group(); rails.name = 'proteccion:rieles'; rails.userData.comp = C; comps[C].add(rails);
-      [0.36, 0.14, -0.06].forEach(v => railDIN(rails, 0.6, Tp(0, v, 0))); duct(rails, 0.6, 0.04, Tp(0, 0.47, 0), true); duct(rails, 0.6, 0.04, Tp(0, 0.25, 0), true);
-      const brk = (g, u, v, poles, color) => { const wp = 0.018 * poles; block(g, wp, 0.085, 0.06, Tp(u, v, 0.03), 'abLight'); g.add(box(wp * 0.7, 0.014, 0.004, 'black', { pos: [Tp(u, v, 0)[0], Tp(u, v, 0)[1] + 0.02, Tp(u, v, 0)[2] + 0.062], cast: false })); g.add(box(0.008, 0.02, 0.008, color || 'black', { pos: [Tp(u, v, 0)[0], Tp(u, v, 0)[1] + 0.02, Tp(u, v, 0)[2] + 0.066] })); return wp; };
-      // fila 1 (v=0.36): 9 interruptor general 40A + 10 alargo ; IC10A ; IC2A ×4 ; IC4A ×2 ; IIIC4A ×2 ; aux ×4
-      let u = -0.28;
-      const gp = Tp(u + 0.045, 0.36, 0);
-      block(eg[9], 0.09, 0.13, 0.08, [gp[0], gp[1], gp[2] + 0.04], 'black'); eg[9].add(rbox(0.05, 0.05, 0.02, 0.006, 'red', { pos: [gp[0], gp[1] + 0.01, gp[2] + 0.09], mat: { color: 0xd8b020 } })); eg[9].add(rbox(0.035, 0.014, 0.014, 0.003, 'red', { pos: [gp[0], gp[1] + 0.01, gp[2] + 0.104] })); eg[9].add(cyl(0.006, 0.006, 0.03, 'steel', { axis: 'z', pos: [gp[0], gp[1] + 0.01, gp[2] + 0.115], seg: 12 }));
-      eg[10].add(cyl(0.005, 0.005, 0.09, 'steel', { axis: 'z', pos: [gp[0], gp[1] + 0.01, gp[2] + 0.15], seg: 12 })); eg[10].add(cyl(0.008, 0.008, 0.012, 'steelDark', { axis: 'z', pos: [gp[0], gp[1] + 0.01, gp[2] + 0.198], seg: 12 }));
-      u += 0.105;
-      u += brk(eg[1], u + 0.009, 0.36, 1, 'green') + 0.002;
-      for (let i = 0; i < 4; i++) { u += brk(eg[3], u + 0.009, 0.36, 1, 'black') + 0.002; }
-      for (let i = 0; i < 2; i++) { u += brk(eg[4], u + 0.009, 0.36, 1, 'blueLight') + 0.002; }
-      for (let i = 0; i < 2; i++) { u += brk(eg[5], u + 0.027, 0.36, 3, 'black') + 0.002; }
-      // contactos auxiliares ×4 (a un costado de los magnetotérmicos)
-      for (let i = 0; i < 4; i++) { const p = Tp(-0.128 + i * 0.02, 0.29, 0); block(eg[2], 0.014, 0.04, 0.05, [p[0], p[1], p[2] + 0.028], 'gray'); eg[2].add(box(0.01, 0.006, 0.003, 'yellow', { pos: [p[0], p[1] + 0.008, p[2] + 0.054], cast: false })); }
-      // fila 2 (v=0.14): guardamotores 11 (1.6-2.5A), 14 (10-16A ×2), 15 (20A) ; 12 bloques contactos ×4 ; 13 accesorios ×3
-      const gm = [[11, 'blueLight'], [14, 'blueLight'], [14, 'blueLight'], [15, 'red']]; let u2 = -0.28;
-      gm.forEach(([id, col]) => { const p = Tp(u2 + 0.02, 0.14, 0); block(eg[id], 0.045, 0.095, 0.075, [p[0], p[1], p[2] + 0.037], 'abLight'); eg[id].add(cyl(0.011, 0.011, 0.014, col, { axis: 'z', pos: [p[0], p[1] + 0.012, p[2] + 0.081], seg: 20 })); eg[id].add(box(0.03, 0.01, 0.003, 'black', { pos: [p[0], p[1] - 0.025, p[2] + 0.076], cast: false })); u2 += 0.05; });
-      for (let i = 0; i < 4; i++) { const p = Tp(-0.28 + i * 0.05 + 0.041, 0.14, 0); block(eg[12], 0.014, 0.07, 0.06, [p[0], p[1], p[2] + 0.031], 'black'); }
-      for (let i = 0; i < 3; i++) { const p = Tp(-0.28 + i * 0.05 + 0.022, 0.08, 0); block(eg[13], 0.024, 0.03, 0.05, [p[0], p[1], p[2] + 0.027], 'gray'); eg[13].add(box(0.016, 0.006, 0.004, 'yellow', { pos: [p[0], p[1], p[2] + 0.054], cast: false })); }
-      // contactores 9A ×2 (6), peana relé 11 polos (8), controlador de nivel (7)
-      [0, 1].forEach(i => { const p = Tp(-0.05 + i * 0.05 + 0.02, 0.14, 0); block(eg[6], 0.045, 0.09, 0.08, [p[0], p[1], p[2] + 0.04], 'black'); eg[6].add(box(0.03, 0.02, 0.004, 'blueLight', { pos: [p[0], p[1] + 0.02, p[2] + 0.082], cast: false })); eg[6].add(box(0.036, 0.008, 0.004, 'steel', { pos: [p[0], p[1] - 0.03, p[2] + 0.082], cast: false })); });
-      const p8 = Tp(0.13, 0.14, 0); block(eg[8], 0.05, 0.075, 0.06, [p8[0], p8[1], p8[2] + 0.03], 'blue'); for (let i = 0; i < 11; i++) eg[8].add(box(0.003, 0.006, 0.004, 'steel', { pos: [p8[0] - 0.02 + i * 0.004, p8[1] + 0.03, p8[2] + 0.062], cast: false }));
-      const p7 = Tp(0.2, 0.14, 0); block(eg[7], 0.045, 0.08, 0.055, [p7[0], p7[1], p7[2] + 0.027], 'gray', { face: 'black', leds: 2 });
+      const C = 'proteccion', eg = {}; for (let i = 1; i <= 15; i++) { eg[i] = el(C, i); DOORT('proteccion:' + i); }
+      const brk = (g, u, v, poles, color, h) => { const wp = 18 * poles; dev(g, u, v, wp - 0.6, h || 90, 0.06, 'abLight'); g.add(box((wp - 6) / 1000, 0.014, 0.004, 'black', { pos: PL(u, v - 25, 0.062), cast: false })); g.add(box(0.008, 0.02, 0.008, color || 'black', { pos: PL(u, v - 25, 0.066) })); return wp; };
+      // fila superior izquierda: K1 (peana de relé 11 polos, 8) y KF1 (controlador de nivel, 7)
+      dev(eg[8], 108, 100, 40, 120, 0.06, 'blue'); for (let i = 0; i < 11; i++) eg[8].add(box(0.003, 0.006, 0.004, 'steel', { pos: PL(96 + i * 2.4, 55, 0.062), cast: false }));
+      dev(eg[7], 152, 100, 34, 120, 0.055, 'gray', { face: 'black', leds: 2 });
+      // fila B: guardamotores Q1–Q4 con bloques de contactos (12) y accesorios (13)
+      [[11, 'blueLight'], [14, 'blueLight'], [14, 'blueLight'], [15, 'red']].forEach(([id, col], i) => {
+        const u = 82 + i * 52; dev(eg[id], u, 335, 44, 100, 0.075, 'abLight'); eg[id].add(cyl(0.011, 0.011, 0.014, col, { axis: 'z', pos: PL(u, 315, 0.081), seg: 20 })); eg[id].add(box(0.03, 0.01, 0.003, 'black', { pos: PL(u, 355, 0.076), cast: false }));
+        dev(eg[12], u + 24, 335, 9, 70, 0.06, 'black');
+        if (i < 3) dev(eg[13], u, 275, 24, 26, 0.05, 'gray'), eg[13].add(box(0.016, 0.006, 0.004, 'yellow', { pos: PL(u, 275, 0.052), cast: false }));
+      });
+      // FP1, FP2: magnetotérmicos de 3 polos (5)
+      [318, 374].forEach(u => brk(eg[5], u, 330, 3, 'black', 100));
+      // grupo de 1 polo: IC10A (1), IC2A ×4 (3), IC4A ×2 (4) + contactos auxiliares ×4 (2)
+      let u2 = 440; u2 += brk(eg[1], u2 + 9, 330, 1, 'green', 100) + 0.6; for (let i = 0; i < 4; i++) u2 += brk(eg[3], u2 + 9, 330, 1, 'black', 100) + 0.6; for (let i = 0; i < 2; i++) u2 += brk(eg[4], u2 + 9, 330, 1, 'blueLight', 100) + 0.6;
+      for (let i = 0; i < 4; i++) { dev(eg[2], 440 + i * 9 + 4, 400, 8, 36, 0.05, 'gray'); eg[2].add(box(0.006, 0.006, 0.003, 'yellow', { pos: PL(444 + i * 9, 396, 0.052), cast: false })); }
+      // fila C: contactores 9A (6) junto a A1; fila D: interruptor general 40A (9) y alargo (10)
+      [430, 476].forEach(u => { dev(eg[6], u, 560, 42, 95, 0.08, 'black'); eg[6].add(box(0.03, 0.02, 0.004, 'blueLight', { pos: PL(u, 535, 0.082), cast: false })); eg[6].add(box(0.036, 0.008, 0.004, 'steel', { pos: PL(u, 590, 0.082), cast: false })); });
+      dev(eg[9], 120, 810, 70, 130, 0.08, 'black'); eg[9].add(rbox(0.05, 0.05, 0.02, 0.006, 'yellow', { pos: PL(120, 810, 0.09) })); eg[9].add(rbox(0.035, 0.014, 0.014, 0.003, 'red', { pos: PL(120, 810, 0.104) }));
+      eg[10].add(cyl(0.005, 0.005, 0.09, 'steel', { axis: 'z', pos: PL(120, 810, 0.15), seg: 12 })); eg[10].add(cyl(0.008, 0.008, 0.012, 'steelDark', { axis: 'z', pos: PL(120, 810, 0.198), seg: 12 }));
       explode(eg[9], 0, 0, 0.5);
     }
 
     /* =========================================================
-     *  VARIADORES Y SERVO (3)
+     *  VARIADORES Y SERVO (3) — filas E (U1, U2, U3) y F (U4)
      * ========================================================= */
     {
       const C = 'variador', eg = { 1: el(C, 1), 2: el(C, 2), 3: el(C, 3) };
-      K.elemDoor['variador:1'] = K.elemDoor['variador:2'] = K.elemDoor['variador:3'] = 'tall';
-      const drive = (g, u, v, w, h, d, txt) => {
-        const p = Tp(u, v, 0); block(g, w, h, d, [p[0], p[1], p[2] + d / 2], 'ab');
-        g.add(box(w * 0.86, h * 0.34, 0.004, 'black', { pos: [p[0], p[1] + h * 0.2, p[2] + d + 0.001], cast: false }));
-        g.add(label(txt, w * 0.8, 0.014, { bg: '#0f1418', fs: 22, pos: [p[0], p[1] + h * 0.42, p[2] + d + 0.0025] }));
-        for (let i = 0; i < 6; i++) g.add(box(w * 0.1, w * 0.1, 0.004, i % 2 ? 'gray' : 'green', { pos: [p[0] - w * 0.28 + (i % 3) * w * 0.28, p[1] - h * 0.02 - Math.floor(i / 3) * w * 0.14, p[2] + d + 0.001], cast: false }));
-        const vg = new THREE.Group(); vg.position.set(p[0], p[1] + h / 2 + 0.02, p[2] + d * 0.5); g.add(vg);
-        vg.add(box(w * 0.7, 0.008, d * 0.7, 'steelDark', { pos: [0, -0.02, 0] }));
-        for (let i = 0; i < 6; i++) vg.add(box(w * 0.06, 0.03, d * 0.7, 'steelDark', { pos: [-w * 0.3 + i * w * 0.12, -0.005, 0], cast: false }));
+      [1, 2, 3].forEach(i => DOORT('variador:' + i));
+      const drive = (g, u, v, wm, hm, d, txt) => {
+        dev(g, u, v, wm, hm, d, 'ab'); g.add(box(wm * 0.86 / 1000, hm * 0.34 / 1000, 0.004, 'black', { pos: PL(u, v - hm * 0.2, d + 0.001), cast: false }));
+        tag(g, u, v - hm * 0.42, txt, wm * 0.8, 14, d + 0.0015, { fs: 18 });
+        for (let i = 0; i < 6; i++) g.add(box(wm * 0.1 / 1000, wm * 0.1 / 1000, 0.004, i % 2 ? 'gray' : 'green', { pos: PL(u - wm * 0.28 + (i % 3) * wm * 0.28, v + hm * 0.02 + Math.floor(i / 3) * wm * 0.14, d + 0.001), cast: false }));
+        const vg = new THREE.Group(); const vp = PL(u, v - hm / 2 - 10, d * 0.5); vg.position.set(vp[0], vp[1], vp[2]); g.add(vg);
+        vg.add(box(wm * 0.7 / 1000, 0.008, d * 0.7, 'steelDark', { pos: [0, -0.02, 0] })); for (let i = 0; i < 6; i++) vg.add(box(wm * 0.06 / 1000, 0.03, d * 0.7, 'steelDark', { pos: [-wm * 0.0003 + (i - 2.5) * wm * 0.00012 * 1.0, -0.005, 0], cast: false }));
       };
-      drive(eg[1], -0.26, -0.13, 0.07, 0.17, 0.13, 'PowerFlex 525 0,4 kW');
-      drive(eg[2], -0.16, -0.13, 0.09, 0.19, 0.14, 'PowerFlex 525 4 kW'); drive(eg[2], -0.05, -0.13, 0.09, 0.19, 0.14, 'PowerFlex 525 4 kW');
-      // 3 controladora servo Kinetix 5,1 kW
-      const p = Tp(0.1, -0.09, 0); block(eg[3], 0.11, 0.3, 0.15, [p[0], p[1], p[2] + 0.075], 'ab'); eg[3].add(box(0.09, 0.09, 0.004, 'black', { pos: [p[0], p[1] + 0.09, p[2] + 0.151], cast: false })); eg[3].add(label('Kinetix 5700 2198-H025', 0.09, 0.014, { bg: '#0f1418', fs: 20, pos: [p[0], p[1] + 0.14, p[2] + 0.1525] }));
-      for (let i = 0; i < 4; i++) eg[3].add(box(0.06, 0.014, 0.004, 'green', { pos: [p[0], p[1] - 0.03 - i * 0.03, p[2] + 0.151], cast: false }));
+      drive(eg[1], 80, 1067, 74, 200, 0.13, 'PowerFlex 525 0,4 kW');
+      drive(eg[2], 175, 1067, 93, 220, 0.14, 'PowerFlex 525 4 kW'); drive(eg[2], 275, 1067, 93, 220, 0.14, 'PowerFlex 525 4 kW');
+      dev(eg[3], 130, 1400, 62, 300, 0.15, 'ab'); dev(eg[3], 130, 1330, 50, 80, 0.155, 'black'); tag(eg[3], 130, 1265, 'Kinetix 5700 2198-H025', 56, 14, 0.152, { fs: 16 });
+      for (let i = 0; i < 4; i++) eg[3].add(box(0.045, 0.014, 0.004, 'green', { pos: PL(130, 1400 + i * 30, 0.151), cast: false }));
       explode(eg[3], 0, 0, 0.5);
     }
 
@@ -214,11 +210,12 @@
      * ========================================================= */
     {
       const C = 'alimentacion', g1 = el(C, 1), g2 = el(C, 2), g3 = el(C, 3);
-      K.elemDoor['alimentacion:1'] = K.elemDoor['alimentacion:3'] = 'tall'; K.elemDoor['alimentacion:2'] = null;
-      // 3 fuentes 380-480VAC → 24 VDC 10A ×2 (riel inferior)
-      [0, 1].forEach(i => { const p = Tp(-0.16 + i * 0.11, -0.4, 0); block(g3, 0.09, 0.13, 0.11, [p[0], p[1], p[2] + 0.055], 'abLight'); g3.add(box(0.07, 0.02, 0.004, 'black', { pos: [p[0], p[1] + 0.03, p[2] + 0.111], cast: false })); g3.add(label('XLE240E-3', 0.07, 0.012, { bg: '#0f1418', fs: 20, pos: [p[0], p[1] + 0.05, p[2] + 0.1115] })); for (let k = 0; k < 6; k++) g3.add(box(0.006, 0.014, 0.004, 'steel', { pos: [p[0] - 0.025 + k * 0.01, p[1] - 0.055, p[2] + 0.11], cast: false })); });
-      railDIN(comps[C], 0.6, Tp(0, -0.4, 0));
-      // 1 refrigerador Peltier ELMEKO PK150 en la pared lateral derecha (aleteado exterior + ventilador)
+      ['alimentacion:1', 'alimentacion:3'].forEach(DOORT); K.elemDoor['alimentacion:2'] = null;
+      // 3 fuentes 380-480 VAC → 24 VDC 10 A ×2 (G1, G2 en la fila C)
+      [75, 135].forEach(u => { dev(g3, u, 560, 52, 150, 0.11, 'abLight'); g3.add(box(0.04, 0.02, 0.004, 'black', { pos: PL(u, 520, 0.111), cast: false })); tag(g3, u, 500, 'XLE240E-3', 42, 12, 0.111, { fs: 16 }); for (let k = 0; k < 6; k++) g3.add(box(0.006, 0.014, 0.004, 'steel', { pos: PL(u - 15 + k * 6, 630, 0.11), cast: false })); });
+      // 1 refrigerador Peltier ELMEKO PK150: unidad interior (E1 del plano) + aleteado exterior en la pared derecha
+      dev(g1, 555, 1330, 190, 250, 0.06, 'steelDark'); for (let i = 0; i < 10; i++) g1.add(box(0.17, 0.004, 0.02, 'anodized', { pos: PL(555, 1230 + i * 20, 0.07), cast: false }));
+      g1.add(cyl(0.05, 0.05, 0.02, 'black', { axis: 'z', pos: PL(555, 1440, 0.075), seg: 32 }));
       const px = T.x + T.w / 2, py = T.y - 0.05, pz = T.z + 0.02;
       g1.add(rbox(0.05, 0.3, 0.18, 0.006, 'steelDark', { pos: [px + 0.028, py, pz] }));
       for (let i = 0; i < 14; i++) g1.add(box(0.06, 0.26, 0.004, 'anodized', { pos: [px + 0.075, py, pz - 0.075 + i * 0.0115], cast: false }));

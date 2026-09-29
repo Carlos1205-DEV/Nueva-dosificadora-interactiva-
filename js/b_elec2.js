@@ -3,7 +3,7 @@
   'use strict';
   window.MODEL_BUILDERS.push(function (K) {
     const { THREE, PI, TAU, el, comps, box, rbox, cyl, torus, sphere, lathe, extrude, merge, tr, put, bolts, nuts, washers, line, grid, pipe, hose, clamp, inst, mat, mesh, explode, spin, geo, anim, state, canvasTex, label } = K;
-    const L = K.L, S = K.parts, T = L.tall, SM = L.small, hp = L.hopper;
+    const L = K.L, S = K.parts, T = L.tall, SM = L.small, hp = { x0: L.tank.x0, x1: L.tank.x1, z0: L.tank.z0, z1: L.tank.z1, y0: L.tank.y0, y1: L.tank.y1 };
     const Tp = K.Tp, Sp = K.Sp;
     const hcx = (hp.x0 + hp.x1) / 2, hcz = (hp.z0 + hp.z1) / 2;
 
@@ -165,7 +165,7 @@
       const c17 = m12(eg[17], [0.55, 0.535, -0.55], [0.3, 0, 0.3], false, 'cableBlue');
       // ---- neumática de campo (panel izquierdo de la torre, cara -X) ----
       pneuBoard = new THREE.Group(); pneuBoard.name = 'detectores:panelNeumatico'; pneuBoard.userData.comp = C; comps[C].add(pneuBoard);
-      const X0 = -1.86, ZB = -0.3, YB = 2.42;
+      const X0 = -1.86, ZB = -0.5, YB = 2.42;
       pneuBoard.add(rbox(0.02, 0.86, 0.66, 0.004, 'panelDark', { pos: [X0 + 0.02, YB, ZB] }));
       const at = (dz, y, dx) => [X0 - 0.005 + (dx || 0), y, ZB + dz];
       // 20 filtro regulador SMC AC40 con presostato y purga
@@ -213,9 +213,9 @@
       for (let i = 0; i < 4; i++) pneuBoard.add(hose([[tx - 0.1, ty - 0.02, tz - 0.13 + i * 0.075], [tx - 0.16, ty - 0.1 - i * 0.02, tz - 0.13 + i * 0.075], [tx - 0.2, ty - 0.2, tz - 0.4 + i * 0.05]], 0.005, 'cableBlue', { radial: 10 }));
       eg[1].add(cyl(0.02, 0.02, 0.08, 'brass', { axis: 'x', pos: [tx - 0.1, ty - 0.08, tz - 0.16], seg: 24 })); eg[1].add(cyl(0.012, 0.012, 0.03, 'brass', { axis: 'x', pos: [tx - 0.15, ty - 0.08, tz - 0.16], seg: 16 }));
       // 2 termostato interior del cuadro (NO), 4 filtro controladora servo 2198-DBR20-F: dentro del armario alto
-      const pt = Tp(0.24, 0.26, 0); K.elemDoor['terminales:2'] = 'tall'; K.elemDoor['terminales:4'] = 'tall';
+      const pt = K.PL(60, 100, 0); K.elemDoor['terminales:2'] = 'tall'; K.elemDoor['terminales:4'] = 'tall';
       K.block(eg[2], 0.045, 0.05, 0.04, [pt[0], pt[1], pt[2] + 0.022], 'red'); eg[2].add(cyl(0.01, 0.01, 0.006, 'black', { axis: 'z', pos: [pt[0], pt[1], pt[2] + 0.046], seg: 16 }));
-      const pf = Tp(0.19, -0.13, 0); K.block(eg[4], 0.06, 0.2, 0.1, [pf[0], pf[1], pf[2] + 0.05], 'gray'); eg[4].add(box(0.05, 0.03, 0.004, 'black', { pos: [pf[0], pf[1] + 0.06, pf[2] + 0.101], cast: false }));
+      const pf = K.PL(63, 1390, 0); K.block(eg[4], 0.06, 0.2, 0.1, [pf[0], pf[1], pf[2] + 0.05], 'gray'); eg[4].add(box(0.05, 0.03, 0.004, 'black', { pos: [pf[0], pf[1] + 0.06, pf[2] + 0.101], cast: false }));
       // 5 pulsador amarillo/blanco + 7 paro + 8 fijación + 9 NC + 10 placa: estación local a la salida del transportador; 6 cable M12x5
       const sx = -2.3, sz = 0.32, sy = 1.28;
       const st = new THREE.Group(); st.name = 'terminales:estacion'; st.userData.comp = C; comps[C].add(st);
@@ -249,14 +249,14 @@
       const patch = (id, p0, p1, n) => { for (let i = 0; i < n; i++) R(eg[id], [[p0[0] + i * 0.012, p0[1], p0[2]], [(p0[0] + p1[0]) / 2 + i * 0.012, p0[1] - 0.08 - i * 0.02, p0[2] + 0.05], [p1[0] + i * 0.012, p1[1], p1[2]]], 0.003, 'cableGray'); };
       K.elemDoor['terminales:20'] = K.elemDoor['terminales:21'] = 'small'; K.elemDoor['terminales:22'] = K.elemDoor['terminales:23'] = 'tall';
       patch(20, Sp(0.14, -0.09, 0.06), Sp(0.2, -0.09, 0.06), 1); patch(21, Sp(-0.14, 0.0, 0.09), Sp(0.0, -0.06, 0.08), 1);
-      patch(22, Tp(-0.27, 0.53, 0.07), Tp(-0.1, 0.45, 0.07), 3); patch(23, Tp(0.1, 0.05, 0.15), Tp(0.19, -0.05, 0.11), 2);
+      patch(22, K.PL(262, 60, 0.07), K.PL(360, 1000, 0.07), 3); patch(23, K.PL(300, 1240, 0.12), K.PL(500, 690, 0.11), 2);
       // 24-37 bornes WAGO sobre el riel inferior del armario alto
-      const v = -0.62, railP = Tp(0, v, 0);
+      const v = 810, TW = uu => K.PL(210 + (uu + 0.29) * 1000, v, 0), railP = K.PL(360, v, 0);
       const rails = new THREE.Group(); rails.name = 'terminales:riel'; rails.userData.comp = C; comps[C].add(rails); rails.add(rbox(0.62, 0.035, 0.007, 0.001, 'steelDark', { pos: [railP[0], railP[1], railP[2] - 0.004], cast: false })); rails.add(rbox(0.62, 0.04, 0.045, 0.004, 'lightGray', { pos: [railP[0], railP[1] - 0.06, railP[2] + 0.01] }));
       let u = -0.29;
-      const blk = (id, w, color, h) => { const p = Tp(u + w / 2, v, 0); K.block(eg[id], w * 0.95, h || 0.048, 0.042, [p[0], p[1], p[2] + 0.021], color); eg[id].add(box(w * 0.5, 0.004, 0.004, 'steel', { pos: [p[0], p[1] + 0.018, p[2] + 0.044], cast: false })); u += w; };
-      const cov = (id, w, color) => { const p = Tp(u + w / 2, v, 0); eg[id].add(box(w * 0.9, 0.048, 0.0015, color, { pos: [p[0], p[1], p[2] + 0.021] })); u += w * 0.16; };
-      const stop = (id) => { const p = Tp(u + 0.004, v, 0); K.block(eg[id], 0.008, 0.045, 0.036, [p[0], p[1], p[2] + 0.018], 'lightGray'); u += 0.009; };
+      const blk = (id, w, color, h) => { const p = TW(u + w / 2); K.block(eg[id], w * 0.95, h || 0.048, 0.042, [p[0], p[1], p[2] + 0.021], color); eg[id].add(box(w * 0.5, 0.004, 0.004, 'steel', { pos: [p[0], p[1] + 0.018, p[2] + 0.044], cast: false })); u += w; };
+      const cov = (id, w, color) => { const p = TW(u + w / 2); eg[id].add(box(w * 0.9, 0.048, 0.0015, color, { pos: [p[0], p[1], p[2] + 0.021] })); u += w * 0.16; };
+      const stop = (id) => { const p = TW(u + 0.004); K.block(eg[id], 0.008, 0.045, 0.036, [p[0], p[1], p[2] + 0.018], 'lightGray'); u += 0.009; };
       K.elemDoor['terminales:24'] = null;
       for (let i = 24; i <= 37; i++) K.elemDoor['terminales:' + i] = 'tall';
       stop(26); blk(24, 0.01, 'green'); cov(25, 0.01, 'green'); blk(27, 0.0075, 'green'); cov(28, 0.0075, 'green'); stop(26);

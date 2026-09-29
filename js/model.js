@@ -19,7 +19,9 @@
       K.flows.push({ p, pts, lens, total, n, speed, offset: 0 }); K.root.add(p);
     }
     const H = K.L.hx;
-    flowLine([[H.x, 0.72, H.z + 0.6], [H.x, 0.72, H.z + 0.02], [H.x, 1.98, H.z], [H.x, 2.6, H.z], [2.15, 2.6, H.z], [2.15, 2.6, 0.17], [1.5, 2.6, 0.17], [1.5, 3.02, 0.17]], 0x7fb2ff, 48, 0.035, 0.5);
+    // producto: del intercambiador a la manguera azul y por ella hasta el carro; vapor hacia el intercambiador
+    const hp0 = K.hoses ? K.hoses[0].pts(0.45) : [];
+    flowLine([[H.x, 0.72, H.z + 0.6], [H.x, 0.72, H.z + 0.02], [H.x, 1.98, H.z], [H.x, 2.15, H.z], [H.x, 2.28, H.z - 0.3], [1.72, 2.28, -0.64]].concat(hp0), 0x7fb2ff, 64, 0.035, 0.6);
     flowLine([[H.x + 0.55, 2.15, H.z], [H.x + 0.55, 1.62, H.z], [H.x + 0.14, 1.62, H.z]], 0xffffff, 18, 0.04, 0.6);
 
     /* ---------- unidades de despiece: cada hijo directo de un componente va dentro de un envoltorio ---------- */
@@ -119,9 +121,7 @@
         state.speed += (target - state.speed) * Math.min(1, dt * 2.5);
         K.spinners.forEach(s => { s.obj.rotation[s.axis] += s.k * state.speed * dt; });
         K.anim.forEach(fn => fn(dt, state));
-        if (K.corteSup) { const p = run ? Math.max(0, Math.sin(state.t * 1.6)) : 0; K.corteSup.position.z += ((-0.31 + p * 0.26) - K.corteSup.position.z) * Math.min(1, dt * 6); }
-        if (K.corteDel) { const p = run ? 0.5 - 0.5 * Math.cos(state.t * 1.2) : 0; K.corteDel.position.y += ((2.34 - p * 0.14) - K.corteDel.position.y) * Math.min(1, dt * 6); }
-        if (K.repDoor) { const p = run ? 0.5 - 0.5 * Math.cos(state.t * 0.9) : 0; K.repDoor.position.x += (((K.L.hopper.x0 + K.L.hopper.x1) / 2 - p * 0.7) - K.repDoor.position.x) * Math.min(1, dt * 5); }
+        if (K.cutPlates) { const p = run ? Math.max(0, Math.sin(state.t * 1.6)) : 0; K.cutPlates.forEach((q, i) => { q.position.z += ((-0.34 + (i ? 1 : -1) * p * 0.0 + p * 0.3 * (i ? 1 : 1)) - q.position.z) * Math.min(1, dt * 6); }); }
         K.flows.forEach(f => {
           f.p.visible = run && !f.hidden; if (!f.p.visible) return;
           f.offset = (f.offset + dt * f.speed / f.total * 0.9) % 1;

@@ -3,7 +3,7 @@
   'use strict';
   window.MODEL_BUILDERS.push(function (K) {
     const { THREE, PI, TAU, el, comps, box, rbox, cyl, torus, sphere, lathe, extrude, merge, tr, put, bolts, nuts, washers, line, grid, pipe, hose, clamp, inst, mat, mesh, explode, spin, geo, anim, state } = K;
-    const L = K.L, S = K.parts, HX = L.hx = { x: 2.85, z: -0.05 };
+    const extra = K.extra, slotted = K.slotted, L = K.L, S = K.parts, HX = L.hx;
 
     // coloca una válvula mariposa con sus dos abrazaderas; axis: dirección del flujo
     function place(g, od, act, x, y, z, axis) {
@@ -44,7 +44,7 @@
       g5.add(K.label('MBS MLI 114 · L=1450\nAISI 316L · PS 10 bar', 0.11, 0.06, { bg: '#d3d7db', fg: '#111', fs: 20, pos: [cx - 0.01, 1.2, cz + r * 1.05 + 0.001] }));
       [[cx - 0.06, 1.0], [cx + 0.06, 1.0]].forEach(p => g5.add(rbox(0.02, 0.05, 0.04, 0.004, 'steelDark', { pos: [p[0] * 0 + cx + (p[0] < cx ? -0.07 : 0.07), 1.0, cz] })));
       // 8 bomba PROLAC HCP 50-150 con motor 4 kW
-      const g8 = el(C, 8), px = cx - 0.3, py = 0.36, pz = 0.85;
+      const g8 = el(C, 8), px = cx - 0.3, py = 0.36, pz = cz + 0.8;
       g8.add(lathe([[0.0, -0.05], [0.115, -0.05], [0.13, -0.02], [0.13, 0.03], [0.09, 0.055], [0.0, 0.055]], 'steel', { axis: 'x', pos: [px, py, pz], seg: 64 }));
       g8.add(cyl(0.03, 0.03, 0.12, 'steel', { axis: 'x', pos: [px - 0.12, py, pz], seg: 40 })); g8.add(flange(px - 0.18, py, pz, 'x', 0.03));
       g8.add(cyl(0.026, 0.026, 0.16, 'steel', { pos: [px, py + 0.19, pz], seg: 40 })); g8.add(flange(px, py + 0.28, pz, 'y', 0.026));
@@ -104,60 +104,83 @@
       pr.add(pipe([[gx, gy + 0.06, cz], [gx, 2.15, cz], [gx - 0.1, 2.15, cz]], 0.0225, 'steel', { radial: 24 }));
       pr.add(pipe([[cx + 0.14, 0.62, cz], [tx - 0.06, 0.62, cz]], 0.0225, 'steel', { radial: 24 }));
       pr.add(pipe([[mx, gy - 0.06, cz], [mx, my + 0.0, cz]], 0.008, 'brass', { radial: 12 }));
-      pr.add(pipe([[cx, 0.72, cz + 0.145], [cx, 0.72, pz - 0.0], [px, 0.72, pz - 0.0], [px, py + 0.28, pz]], 0.0318, 'curd', { radial: 32 }));
-      pr.add(pipe([[cx, 1.98, cz], [cx, 2.6, cz]], 0.0318, 'curd', { radial: 32 }));
-      K.hxTopOut = [cx, 2.6, cz];
+      pr.add(pipe([[cx, 0.72, cz + 0.145], [cx, 0.72, pz - 0.0], [px, 0.72, pz - 0.0], [px, py + 0.28, pz]], 0.0318, 'steel', { radial: 32 }));
+      // salida de producto: sube y se divide hacia las dos mangueras del repartidor
+      pr.add(pipe([[cx, 1.98, cz], [cx, 2.15, cz]], 0.0318, 'steel', { radial: 32 }));
+      pr.add(pipe([[cx, 2.15, cz], [cx, 2.28, cz - 0.3], [1.72, 2.28, -0.64]], 0.0318, 'steel', { radial: 32, bend: 0.1 }));
+      pr.add(pipe([[cx, 2.15, cz], [cx, 1.98, cz - 0.25], [1.72, 1.98, -0.56]], 0.0318, 'steel', { radial: 32, bend: 0.1 }));
+      K.hxTopOut = [cx, 2.15, cz];
       explode(g5, 0.4, 0, 0); explode(g8, 0.5, 0, 0.4);
     }
 
     /* =========================================================
-     *  SISTEMA DE TUBERÍAS (10)
+     *  SISTEMA DE TUBERÍAS (10) — imagen 51
+     *  Red de lavado (CIP) de acero inoxidable: ascendentes con válvulas, dos lazos con bolas alrededor de las
+     *  columnas, jaula inferior de dos lazos con ramales y bolas, y charola superior con bolas Ø50.
      * ========================================================= */
     {
-      const C = 'tuberias';
-      const g1 = el(C, 1), g2 = el(C, 2), g3 = el(C, 3), g4 = el(C, 4), g5 = el(C, 5), g6 = el(C, 6), g7 = el(C, 7), g8 = el(C, 8), g9 = el(C, 9), g10 = el(C, 10);
-      const net = new THREE.Group(); net.name = 'tuberias:tramos'; net.userData.comp = C; comps[C].add(net);
-      const RC = 0.0318, RW = 0.0255;
-      // línea de cuajada (azul): salida del intercambiador → tolva
-      net.add(pipe([[HX.x, 2.6, HX.z], [HX.x - 0.3, 2.6, HX.z], [2.15, 2.6, HX.z], [2.15, 2.6, 0.17], [1.5, 2.6, 0.17]], RC, 'curd', { radial: 32, bend: 0.13 }));
-      // lazo de retorno cuajada (arco azul visible desde el frente)
-      net.add(pipe([[2.15, 2.6, 0.17], [2.15, 1.9, 0.55], [1.0, 1.9, 0.55], [1.0, 2.2, 0.36], [-1.0, 2.2, 0.36]], RC, 'curd', { radial: 32, bend: 0.16 }));
-      // colector de agua/CIP detrás de la máquina y subidas al cassette
-      net.add(pipe([[2.2, 1.5, -0.72], [-1.55, 1.5, -0.72]], RC, 'steel', { radial: 28 }));
-      net.add(pipe([[1.62, 1.5, -0.72], [1.62, 2.76, -0.72], [1.62, 2.76, -0.52]], RW, 'steel', { radial: 24, bend: 0.08 }));
-      net.add(pipe([[1.7, 1.5, -0.72], [1.7, 2.76, -0.72]].concat([[1.7, 2.76, -0.12]]).slice(0, 3), RW, 'steel', { radial: 24, bend: 0.08 }));
-      net.add(pipe([[-1.55, 1.5, -0.72], [-1.55, 3.28, -0.72]], RW, 'steel', { radial: 24 }));
-      // 5 juntas SMS 2½" sobre el colector; 1 junta 1½" ; 4 juntas 2" en subidas
-      [1.95, 1.3, 0.2, -0.9, -1.4].forEach(x => joint(g5, 63.5, x, 1.5, -0.72, 'x'));
-      joint(g2, 38, 2.1, 1.5, -0.72, 'x');
-      [[1.62, 1.9, -0.72], [1.62, 2.4, -0.72], [1.7, 2.1, -0.72], [-1.55, 2.4, -0.72]].forEach(p => joint(g8, 51, p[0], p[1], p[2], 'y'));
-      // válvulas: 6 → OD63.5 T2 ×2 en el colector ; 1 → OD51 T1 ×3 ; 3 → OD40 T1 ×2
-      place(g6, 63.5, 'T2', 1.6, 1.5, -0.72, 'x'); place(g6, 63.5, 'T2', -0.4, 1.5, -0.72, 'x');
-      place(g1, 51, 'T1', 1.62, 2.15, -0.72, 'y'); place(g1, 51, 'T1', 1.7, 2.4, -0.72, 'y'); place(g1, 51, 'T1', -1.55, 2.0, -0.72, 'y');
-      place(g3, 40, 'T1', -1.55, 3.1, -0.72, 'y'); place(g3, 40, 'T1', -1.55, 2.72, -0.72, 'y');
-      // manifolds Ø25 con bolas de lavado (56 CD-17C)
-      const ballList = [];
-      [[3.28, -0.62], [3.28, -0.26], [3.28, 0.1], [1.93, 0.1]].forEach(([y, z], k) => {
-        net.add(pipe([[-1.55, y, z], [1.5, y, z]], 0.0125, 'steel', { radial: 16 }));
-        if (k === 0) net.add(pipe([[-1.55, y, z], [-1.55, y, -0.72]], 0.0125, 'steel', { radial: 16 }));
-        for (let i = 0; i < 14; i++) ballList.push({ p: [-1.4 + i * 0.22, y - 0.025, z], r: [PI, 0, 0] });
-        [-1.55, 1.5].forEach(x => (k % 2 ? g10 : g10).add(clamp(x + (x < 0 ? 0.1 : -0.1), y, z, 'x', 0.0125)));
+      const C = 'tuberias', tk = L.tank, W = tk.x1 - tk.x0, cxk = (tk.x0 + tk.x1) / 2;
+      const g = {}; for (let i = 1; i <= 10; i++) g[i] = el(C, i);
+      const net = extra(C, 'tramos');
+      const RC = 0.0318, RW = 0.0255, R1 = 0.019;
+      // ascendentes en el extremo derecho (junto al intercambiador)
+      const xr = 1.98;
+      const R = [
+        { z: 0.4, y1: 1.62, name: 'A' },      // alimenta el lazo superior de la jaula
+        { z: -0.05, y1: 3.42, name: 'B' },    // sube a los lazos de columnas y a la charola
+        { z: -0.45, y1: 0.7, name: 'C' }      // alimenta el lazo inferior de la jaula
+      ];
+      // colector de entrada en el piso (Ø63.5) con válvulas OD63.5 T2 (6) hacia los ascendentes
+      net.add(pipe([[xr + 0.55, 0.3, -0.7], [xr + 0.55, 0.3, 0.55], [xr, 0.3, 0.55]], RC, 'steel', { radial: 28, bend: 0.1 }));
+      R.forEach((r, k) => net.add(pipe([[xr, 0.3, r.z], [xr, r.y1, r.z]], RC, 'steel', { radial: 28 })));
+      [0.4, -0.05, -0.45].forEach(z => net.add(pipe([[xr + 0.55, 0.3, z], [xr, 0.3, z]], RC, 'steel', { radial: 28 })));
+      // válvulas OD63.5 T2 ×2 (6): parten de la base de dos ascendentes; OD51 T1 ×3 (1): ramales a lazos; OD40 T1 ×2 (3): charola y purga
+      const place = (grp, od, act, x, y, z, axis) => { const v = S.butterfly(od, act), r = od / 2000, Lh = 0.1 + r * 0.6; if (axis === 'y') v.rotation.z = PI / 2; else if (axis === 'z') v.rotation.y = PI / 2; v.position.set(x, y, z); grp.add(v); const dx = axis === 'x' || !axis ? 1 : 0, dy = axis === 'y' ? 1 : 0, dz = axis === 'z' ? 1 : 0; [-1, 1].forEach(s => grp.add(clamp(x + dx * s * (Lh / 2 + 0.006), y + dy * s * (Lh / 2 + 0.006), z + dz * s * (Lh / 2 + 0.006), axis || 'x', r))); return v; };
+      place(g[6], 63.5, 'T2', xr, 0.62, 0.4, 'y'); place(g[6], 63.5, 'T2', xr, 0.62, -0.45, 'y');
+      // lazos de columnas (dos niveles) alrededor de las columnas: tubos sobre los lados largos con ganchos y bolas
+      const ballList = [], loopBall = (x, y, z, dz) => ballList.push({ p: [x, y - 0.08, z + dz], r: [PI, 0, 0] });
+      [2.02, 2.27].forEach((y, k) => {
+        const x0 = tk.x0 + 0.02, x1 = tk.x1 - 0.02, zf = -0.02, zb = -0.66;
+        net.add(pipe([[x0, y, zb], [x1, y, zb], [x1, y, zf], [x0, y, zf], [x0, y, zb]], R1, 'steel', { radial: 20, bend: 0.06 }));
+        // conexión con el ascendente B
+        net.add(pipe([[xr, y, -0.05], [x1 + 0.0, y, -0.05 - 0.0]], RW, 'steel', { radial: 24, bend: 0.06 }));
+        for (let i = 0; i < 7; i++) { const x = x0 + 0.15 + i * (x1 - x0 - 0.3) / 6; [zb, zf].forEach((z, q) => { net.add(pipe([[x, y, z], [x, y - 0.035, z + (q ? -0.03 : 0.03)], [x, y - 0.06, z + (q ? -0.06 : 0.06)]], 0.005, 'steel', { radial: 10, bend: 0.025 })); loopBall(x, y - 0.0, z, q ? -0.06 : 0.06); }); }
       });
-      g7.add(inst(K.sprayBall28, 'steel', ballList));
-      // 10 juntas SMS 1" ×8 completadas: 2 más en el manifold de cada línea
-      [[3.28, -0.62], [3.28, -0.26], [3.28, 0.1], [1.93, 0.1]].forEach(([y, z]) => [-0.4, 0.5].forEach(x => g10.add(clamp(x, y, z, 'x', 0.0125))));
-      // 9 bolas CD-8C Ø50 ×5 (más grandes) dentro de la tolva
-      const big = geo('ball50', () => merge([new THREE.SphereGeometry(0.025, 24, 16)].concat([0, 1, 2, 3, 4, 5, 6, 7].map(i => { const g = new THREE.CylinderGeometry(0.004, 0.006, 0.016, 8); g.rotateZ(PI / 2); g.rotateY(i * PI / 4); g.translate(0.025 * Math.cos(i * PI / 4), 0, -0.025 * Math.sin(i * PI / 4)); return g; })).concat([tr(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 12), 0, 0.03, 0)])));
-      const hp = L.hopper;
-      g9.add(inst(big, 'steel', [-0.95, -0.5, 0.0, 0.5, 0.95].map(x => ({ p: [x, hp.y1 - 0.06, (hp.z0 + hp.z1) / 2 + 0.07], r: [PI, 0, 0] }))));
-      g9.add(pipe([[-1.1, hp.y1 + 0.04, (hp.z0 + hp.z1) / 2 + 0.07], [1.1, hp.y1 + 0.04, (hp.z0 + hp.z1) / 2 + 0.07]], 0.011, 'steel', { radial: 16 }));
-      [-0.95, -0.5, 0.0, 0.5, 0.95].forEach(x => g9.add(cyl(0.007, 0.007, 0.08, 'steel', { pos: [x, hp.y1 - 0.01, (hp.z0 + hp.z1) / 2 + 0.07], seg: 12 })));
-      // 4 válvula inclinada 3/4" PROCOM Ø50 (con actuador y cabezal)
-      const ib = new THREE.Group(); ib.position.set(-1.55, 1.7, -0.72); g4.add(ib);
-      ib.add(cyl(0.025, 0.025, 0.14, 'steel', { pos: [0, 0, 0], seg: 40 })); const ang = new THREE.Group(); ang.rotation.z = -PI / 4; ang.position.set(0, 0.0, 0); ib.add(ang);
+      // válvulas OD51 T1 ×3 sobre los ramales a los lazos y a la jaula superior; OD40 T1 ×2 en la charola y en la purga
+      place(g[1], 51, 'T1', xr - 0.28, 2.02, -0.05, 'x'); place(g[1], 51, 'T1', xr - 0.28, 2.27, -0.05, 'x'); place(g[1], 51, 'T1', xr - 0.28, 1.62, 0.4, 'x');
+      net.add(pipe([[xr, 1.62, 0.4], [xr - 0.22, 1.62, 0.4]], RW, 'steel', { radial: 24 }));
+      // jaula inferior: dos lazos rectangulares (arriba y abajo) con ramales cruzados y bolas
+      [[1.5, 0.42], [0.62, 0.42]].forEach(([y, hz], k) => {
+        const x0 = -1.55, x1 = 1.55;
+        net.add(pipe([[x0, y, -hz], [x1, y, -hz], [x1, y, hz], [x0, y, hz], [x0, y, -hz]], RC * 0.8, 'steel', { radial: 24, bend: 0.08 }));
+        for (let i = 0; i < 7; i++) { const x = x0 + 0.25 + i * (x1 - x0 - 0.5) / 6; net.add(pipe([[x, y, -hz], [x, y, 0], [x, y, hz]], 0.014, 'steel', { radial: 16 })); loopBall(x, y - 0.0, 0, 0); [-hz, hz].forEach(z => loopBall(x, y, z, z > 0 ? -0.06 : 0.06)); }
+      });
+      // conexión de la jaula: ascendentes verticales en los extremos
+      [[-1.55, -0.42], [-1.55, 0.42], [1.55, 0.42], [1.55, -0.42]].forEach(([x, z]) => net.add(pipe([[x, 0.62, z], [x, 1.5, z]], RC * 0.8, 'steel', { radial: 24 })));
+      net.add(pipe([[xr, 1.5, 0.4], [1.55, 1.5, 0.42]], RC * 0.8, 'steel', { radial: 24, bend: 0.06 })); net.add(pipe([[xr, 0.7, -0.45], [1.55, 0.62, -0.42]], RC * 0.8, 'steel', { radial: 24, bend: 0.06 }));
+      // charola superior con dos tubos y 5 bolas CD-8C Ø50 (9), manguera azul de alimentación y válvula OD40
+      const ty = 3.47, tz = -0.4, tray = extra(C, 'charola');
+      tray.add(K.slotted(2.3, 0.6, 0.012, null, null, 'panel', { pos: [cxk, ty + 0.03, tz], mat: { metalness: 0.8 } }));
+      [-0.14, 0.14].forEach(dz => { tray.add(pipe([[tk.x0 + 0.05, ty, tz + dz], [tk.x1 - 0.05, ty, tz + dz]], 0.0125, 'steel', { radial: 16 })); });
+      const big = geo('ball50', () => merge([new THREE.SphereGeometry(0.025, 24, 16)].concat([0, 1, 2, 3, 4, 5, 6, 7].map(i => { const q = new THREE.CylinderGeometry(0.004, 0.006, 0.016, 8); q.rotateZ(PI / 2); q.rotateY(i * PI / 4); q.translate(0.025 * Math.cos(i * PI / 4), 0, -0.025 * Math.sin(i * PI / 4)); return q; })).concat([tr(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 12), 0, 0.03, 0)])));
+      g[9].add(inst(big, 'steel', [-0.9, -0.45, 0.0, 0.45, 0.9].map(x => ({ p: [cxk + x, ty - 0.055, tz], r: [PI, 0, 0] }))));
+      [-0.9, -0.45, 0.0, 0.45, 0.9].forEach(x => g[9].add(cyl(0.007, 0.007, 0.05, 'steel', { pos: [cxk + x, ty - 0.02, tz], seg: 12 })));
+      net.add(pipe([[xr, 3.42, -0.05], [xr - 0.3, 3.42, -0.05], [tk.x1 - 0.05, ty, tz + 0.14]], RW, 'steel', { radial: 24, bend: 0.08 }));
+      place(g[3], 40, 'T1', xr - 0.6, 3.42, -0.05, 'x'); place(g[3], 40, 'T1', xr, 0.95, -0.05, 'y');
+      tray.add(hose([[cxk - 0.6, ty + 0.05, tz], [cxk - 0.55, ty + 0.2, tz], [cxk - 0.4, ty + 0.12, tz + 0.15]], 0.006, 'cableBlue', { radial: 10 }));
+      // válvula inclinada 3/4" PROCOM Ø50 (4) en el ascendente C
+      const ib = new THREE.Group(); ib.position.set(xr, 1.0, -0.45); g[4].add(ib);
+      ib.add(cyl(0.025, 0.025, 0.14, 'steel', { pos: [0, 0, 0], seg: 40 })); const ang = new THREE.Group(); ang.rotation.z = -PI / 4; ib.add(ang);
       ang.add(cyl(0.028, 0.028, 0.1, 'steel', { pos: [0.0, 0.06, 0.0], seg: 40, rot: [0, 0, PI / 2] })); ang.add(cyl(0.04, 0.04, 0.1, 'steelDark', { pos: [0.11, 0.06, 0.0], seg: 40, rot: [0, 0, PI / 2] })); ang.add(cyl(0.035, 0.035, 0.03, 'blueLight', { pos: [0.185, 0.06, 0.0], seg: 32, rot: [0, 0, PI / 2] }));
-      g4.add(clamp(-1.55, 1.775, -0.72, 'y', 0.025)); g4.add(clamp(-1.55, 1.625, -0.72, 'y', 0.025));
-      explode(net, 0.0, 0.0, -0.4);
+      g[4].add(clamp(xr, 1.075, -0.45, 'y', 0.025)); g[4].add(clamp(xr, 0.925, -0.45, 'y', 0.025));
+      // bolas fijas CD-17C ×56 (7): las de los lazos y la jaula (42 + 14)
+      g[7].add(inst(K.sprayBall28, 'steel', ballList.slice(0, 56)));
+      // juntas racord SMS: 2½" ×5 (5), 1½" ×1 (2), 2" ×4 (8), 1" ×8 (10)
+      [[xr, 0.45, 0.4, 'y'], [xr, 1.1, 0.4, 'y'], [xr, 1.3, -0.05, 'y'], [xr, 2.5, -0.05, 'y'], [xr, 0.8, -0.05, 'y']].forEach(p => g[5].add(clamp(p[0], p[1], p[2], p[3], 0.0318)));
+      g[2].add(clamp(xr + 0.3, 0.3, 0.55, 'x', 0.019));
+      [[xr, 2.15, -0.05], [xr, 2.35, -0.05], [xr - 0.15, 1.62, 0.4], [xr - 0.15, 2.27, -0.05]].forEach(p => g[8].add(clamp(p[0], p[1], p[2], p[3] || 'y', 0.0255)));
+      [[-1.55, 1.5, 0.3, 'y'], [1.55, 1.5, 0.3, 'y'], [-1.55, 0.9, -0.42, 'y'], [1.55, 0.9, -0.42, 'y'], [0.4, 1.5, 0.42, 'x'], [-0.4, 0.62, -0.42, 'x'], [tk.x1 - 0.05, 3.47, -0.4, 'x'], [tk.x0 + 0.3, 2.02, -0.66, 'x']].forEach(p => g[10].add(clamp(p[0], p[1], p[2], p[3], 0.0125)));
+      explode(net, 0, 0.0, 0.4); explode(tray, 0, 0.5, 0);
     }
   });
 })();
