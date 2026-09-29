@@ -150,7 +150,7 @@
     opts = opts || {}; S.sel = sel;
     autoReveal(); refresh(); renderPanel(); highlightList();
     if (sel && opts.fly !== false) { const info = sel.kind === 'elem' ? model.elems[sel.id] : model.compInfo[sel.id]; focusBox({ center: info.center, size: info.size, id: sel.kind === 'elem' ? ELEM[sel.id].comp : sel.id }); stopAuto(); }
-    if (sel) document.body.classList.remove('panel-off');
+    if (sel && document.body.classList.contains('panel-off')) { document.body.classList.remove('panel-off'); $('#panelToggle').textContent = '◂'; resize(); }
     updateBanner();
   }
   function updateBanner() { const b = $('#banner'); if (S.iso && S.sel) { b.classList.remove('show'); } }
@@ -228,7 +228,7 @@
     h += `<div class="p-body" style="padding-top:0"><h3 class="sec">Elementos de la sección</h3><div class="tbl">` +
       c.items.map(it => `<button class="trow${selEl === it ? ' on' : ''}" data-el="${it.key}"><span class="no">${it.i}</span><span class="nm">${esc(nice(it.n))}</span><span class="q">×${it.q}</span></button>`).join('') + '</div></div>';
     panelBody.innerHTML = h;
-    $$('[data-el]', panelBody).forEach(b => b.addEventListener('click', () => select({ kind: 'elem', id: b.dataset.el })));
+    $$('[data-el]', panelBody).forEach(b => { b.addEventListener('click', () => select({ kind: 'elem', id: b.dataset.el })); b.addEventListener('mouseenter', () => { S.hover = b.dataset.el; refresh(); }); b.addEventListener('mouseleave', () => { S.hover = null; refresh(); }); });
     const on = $('.trow.on', panelBody); if (on) on.scrollIntoView({ block: 'nearest' });
     const bp = $('#bPrev'), bn = $('#bNext'), bc = $('#bComp'), bi = $('#bIso'), ba = $('#bAll');
     if (bp) { bp.onclick = () => select({ kind: 'elem', id: c.items[(idx + c.n - 1) % c.n].key }); bn.onclick = () => select({ kind: 'elem', id: c.items[(idx + 1) % c.n].key }); bc.onclick = () => select({ kind: 'comp', id: compId }); }
@@ -244,7 +244,7 @@
       <div class="callout" style="margin-top:14px">Usa <b>Rayos X</b> para ver las piezas interiores, <b>Explosión</b> para separar los conjuntos, <b>Corte</b> para seccionar la máquina y <b>▶ Operación</b> para animar cadena, cuchillas, elevación y flujo.</div></div>`;
   }
   function bindOverview() { $$('[data-c]', panelBody).forEach(b => b.addEventListener('click', () => select({ kind: 'comp', id: b.dataset.c }))); }
-  $('#panelToggle').addEventListener('click', () => { document.body.classList.toggle('panel-off'); $('#panelToggle').textContent = document.body.classList.contains('panel-off') ? '▸' : '◂'; });
+  $('#panelToggle').addEventListener('click', () => { document.body.classList.toggle('panel-off'); $('#panelToggle').textContent = document.body.classList.contains('panel-off') ? '▸' : '◂'; resize(); });
 
   /* ---------- búsqueda ---------- */
   const q = $('#q'), qres = $('#qres');
@@ -267,6 +267,7 @@
   $('#tIso').addEventListener('click', () => iso(!S.iso));
   $('#tSm').addEventListener('click', () => { S.autoDoor.small = false; door('small', !flag.small); });
   $('#tTall').addEventListener('click', () => { S.autoDoor.tall = false; door('tall', !flag.tall); });
+  $('#tStop').addEventListener('click', () => { S.stop = !S.stop; model.setEstop(S.stop); $('#tStop').classList.toggle('on', S.stop); });
   $('#tHD').addEventListener('click', () => { hd = !hd; $('#tHD').classList.toggle('on', hd); setPixelRatio(); });
   $('#sExp').addEventListener('input', e => { S.exp = e.target.value / 100; model.setExplode(S.exp * 1.0); });
   $('#sCut').addEventListener('input', e => { S.cut = e.target.value / 100; cutPlane.constant = S.cut === 0 ? 100 : 1.7 - S.cut * 2.7; });
@@ -281,7 +282,13 @@
   }
 
   /* ---------- ciclo de render ---------- */
-  function resize() { const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < 1.1 ? 2 * Math.atan(Math.min(0.51 / (w / h), 0.75)) * 180 / Math.PI : 34; camera.updateProjectionMatrix(); const d = $('#dock'); document.documentElement.style.setProperty('--dockH', d.offsetHeight + 'px'); }
+  function resize() { const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < 1.1 ? 2 * Math.atan(Math.min(0.51 / (w / h), 0.75)) * 180 / Math.PI : 34; camera.updateProjectionMatrix(); applyOffset(); const d = $('#dock'); document.documentElement.style.setProperty('--dockH', d.offsetHeight + 'px'); }
+  function applyOffset() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (window.matchMedia('(max-width: 900px)').matches || !w) { camera.clearViewOffset(); return; }
+    const R = document.body.classList.contains('panel-off') ? 10 : 410, Lw = 270;
+    camera.setViewOffset(w, h, (R - Lw) / 2, 0, w, h);
+  }
   window.addEventListener('resize', resize);
   const clock = new THREE.Clock();
   function loop() {

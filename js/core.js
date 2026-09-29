@@ -23,7 +23,7 @@
     anodized:   { color: 0x8093ad, metalness: 0.75, roughness: 0.4 },
     red:        { color: 0xc32b2b, metalness: 0.2,  roughness: 0.38 },
     yellow:     { color: 0xe8b923, metalness: 0.2,  roughness: 0.45 },
-    orange:     { color: 0xd9822b, metalness: 0.35, roughness: 0.45 },   // rodillos transportadores (naranja CAD)
+    orange:     { color: 0xd8701a, metalness: 0.15, roughness: 0.5 },   // rodillos transportadores (naranja CAD)
     white:      { color: 0xeceff1, metalness: 0.05, roughness: 0.6 },
     gray:       { color: 0x8b9198, metalness: 0.4,  roughness: 0.5 },
     lightGray:  { color: 0xc9cdd1, metalness: 0.25, roughness: 0.55 },
@@ -37,7 +37,7 @@
     weg:        { color: 0x2e6dbf, metalness: 0.35, roughness: 0.42 },
     sew:        { color: 0x3c4a5a, metalness: 0.4,  roughness: 0.5 },
     cable:      { color: 0x2a2d31, metalness: 0.1,  roughness: 0.7 },
-    cableGray:  { color: 0x5b6168, metalness: 0.05, roughness: 0.75 },
+    cableGray:  { color: 0x3c4147, metalness: 0.05, roughness: 0.8 },
     cableBlue:  { color: 0x2d62c8, metalness: 0.1,  roughness: 0.65 },
     ab:         { color: 0x3b4148, metalness: 0.3,  roughness: 0.55 },   // Allen-Bradley gris oscuro
     abLight:    { color: 0xd7d9dc, metalness: 0.15, roughness: 0.55 }
