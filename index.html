@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dosificadora Interactiva 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="gl" aria-label="Modelo 3D de la dosificadora"></canvas>
+  <div id="labels"></div>
+  <div id="tip"></div>
+  <div id="banner"></div>
+
+  <header id="top">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-txt"><b>DOSIFICADORA</b><small>Moldeadora multiformato T-5 10TPL-D · Modelo 3D según taxonomía</small></div>
+    </div>
+    <div class="top-stats"><span id="stComp">19 secciones</span><span id="stEl">295 elementos</span></div>
+    <button id="sysToggle" class="ghost" aria-label="Secciones">☰ Secciones</button>
+  </header>
+
+  <aside id="sys">
+    <div class="search"><input id="q" type="search" placeholder="Buscar elemento, parte o sección…" autocomplete="off"><div id="qres"></div></div>
+    <div id="syslist"></div>
+  </aside>
+
+  <section id="dock">
+    <div class="dock-row">
+      <div class="grp" id="views">
+        <button data-view="iso" class="on">Isométrica</button>
+        <button data-view="front">Frente</button>
+        <button data-view="back">Trasera</button>
+        <button data-view="left">Salida</button>
+        <button data-view="right">Intercambiador</button>
+        <button data-view="top">Superior</button>
+      </div>
+      <div class="grp" id="toggles">
+        <button id="tRun" title="Simular operación">▶ Operación</button>
+        <button id="tRot" class="on" title="Giro automático">⟳ Giro</button>
+        <button id="tXray" title="Ver a través de las carcasas">Rayos X</button>
+        <button id="tLabels" title="Mostrar nombres de las secciones">Etiquetas</button>
+        <button id="tIso" title="Atenuar todo menos lo seleccionado">Aislar</button>
+        <button id="tSm" title="Abrir/cerrar puerta del armario de la pantalla">Puerta HMI</button>
+        <button id="tTall" title="Abrir/cerrar puerta del armario alto">Puerta armario</button>
+        <button id="tHD" title="Resolución máxima (más nitidez, más carga gráfica)">Ultra HD</button>
+      </div>
+    </div>
+    <div class="dock-row sliders">
+      <label>Explosión <input id="sExp" type="range" min="0" max="100" value="0"></label>
+      <label>Corte <input id="sCut" type="range" min="0" max="100" value="0"></label>
+      <div id="legend"></div>
+    </div>
+  </section>
+
+  <aside id="panel">
+    <button id="panelToggle" aria-label="Mostrar u ocultar panel">◂</button>
+    <div id="panelBody"></div>
+  </aside>
+
+  <div id="hint">Arrastra para girar · rueda o pellizco para acercar · clic derecho para mover · clic en una pieza para seleccionarla</div>
+  <div id="toast"></div>
+  <div id="loading"><div class="spin"></div><div id="loadTxt">Construyendo modelo 3D…</div></div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="data/taxonomia.js"></script>
+<script src="js/core.js"></script>
+<script src="js/b_parts.js"></script>
+<script src="js/b_structure.js"></script>
+<script src="js/b_mec2.js"></script>
+<script src="js/b_mec3.js"></script>
+<script src="js/b_mec4.js"></script>
+<script src="js/b_elec1.js"></script>
+<script src="js/b_elec2.js"></script>
+<script src="js/model.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
