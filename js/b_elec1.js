@@ -58,6 +58,10 @@
       // tirador / cerradura de la puerta
       pv.add(rbox(0.05, 0.014, 0.012, 0.004, 'steel', { pos: [-W + 0.08, 0.0, 0.02] })); pv.add(cyl(0.012, 0.012, 0.012, 'black', { axis: 'z', pos: [-W + 0.08, 0, 0.016], seg: 20 }));
       pv.add(label('⚡', 0.06, 0.06, { bg: '#f2c500', fg: '#111', fs: 40, pos: [-W / 2, 0.55, 0.0095] }));
+      [0.72, 0.0, -0.72].forEach(y => { pv.add(cyl(0.011, 0.011, 0.1, 'steelDark', { pos: [0.012, y, -0.006], seg: 20 })); pv.add(rbox(0.04, 0.09, 0.006, 0.002, 'steelDark', { pos: [-0.012, y, 0.0] })); });
+      const slats = []; for (let i = 0; i < 16; i++) slats.push({ p: [cx - W / 2 - 0.004, cy - 0.55 + i * 0.024, cz + 0.02], r: [0, 0, 0.35] });
+      g9.add(K.inst(K.geo('slat', () => new THREE.BoxGeometry(0.008, 0.012, 0.16)), 'steelDark', slats));
+      g9.add(K.label('Armario 700×1700×300 · IP66', 0.11, 0.04, { bg: '#d3d7db', fg: '#111', fs: 16, pos: [cx + 0.2, cy + 0.0, cz + D / 2 + 0.0085 + 0.0], rot: [0, 0, 0] }).translateZ(0.0));
       K.doors.tall = { pivot: pv, max: 1.95 };
       // ---------- armario pequeño 500x450x220 (HMI) ----------
       const s2 = el(C, 2), s1 = el(C, 1), s3 = el(C, 3), s4 = el(C, 4), s5 = el(C, 5), s6 = el(C, 6), s7 = el(C, 7);

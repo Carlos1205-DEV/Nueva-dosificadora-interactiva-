@@ -43,7 +43,10 @@
     abLight:    { color: 0xd7d9dc, metalness: 0.15, roughness: 0.55 }
   };
 
-  function makeKit() {
+  function makeKit(opts) {
+    opts = opts || {};
+    const DETAIL = opts.detail || 1, TS = DETAIL >= 1.5 ? 2 : 1;             // nivel de malla y escala de texturas
+    const sg = n => n <= 8 ? n : Math.max(8, Math.round(n * DETAIL / 2) * 2);  // segmentos radiales (las formas hexagonales no cambian)
     const root = new THREE.Group();
     const context = new THREE.Group(); context.name = 'contexto'; context.userData.context = true; root.add(context);
     const comps = {};        // id -> Group (componente)
@@ -74,43 +77,50 @@
       return me;
     }
     const rnd = v => Math.round(v * 10000) / 10000;
-    const box = (w, h, d, m, o) => mesh(geo('b' + rnd(w) + '_' + rnd(h) + '_' + rnd(d), () => new THREE.BoxGeometry(w, h, d)), m, o);
+    // las cajas de tamaño relevante llevan un pequeño radio en las aristas (más realismo en los reflejos)
+    const box = (w, h, d, m, o) => {
+      const mn = Math.min(w, h, d);
+      if (mn >= 0.012 && !(o && o.flat)) return rbox(w, h, d, Math.min(0.0032, mn * 0.2), m, o);
+      return mesh(geo('b' + rnd(w) + '_' + rnd(h) + '_' + rnd(d), () => new THREE.BoxGeometry(w, h, d)), m, o);
+    };
     // caja con aristas redondeadas (biselada)
     function rbox(w, h, d, r, m, o) {
       r = Math.min(r, w / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4);
       const g = geo('rb' + rnd(w) + '_' + rnd(h) + '_' + rnd(d) + '_' + rnd(r), () => {
         const s = new THREE.Shape(), a = w / 2 - r, b = h / 2 - r;
         s.moveTo(-a, -b); s.lineTo(a, -b); s.lineTo(a, b); s.lineTo(-a, b); s.closePath();
-        const e = new THREE.ExtrudeGeometry(s, { depth: Math.max(d - 2 * r, 1e-4), bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: 3, curveSegments: 4 });
+        const e = new THREE.ExtrudeGeometry(s, { depth: Math.max(d - 2 * r, 1e-4), bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: Math.max(3, Math.round(3 * Math.min(DETAIL, 2))), curveSegments: Math.max(4, Math.round(4 * DETAIL)) });
         e.translate(0, 0, -(d - 2 * r) / 2); return e;
       });
       return mesh(g, m, o);
     }
     function cyl(rT, rB, h, m, o) {
       o = o || {};
-      const g = geo('c' + rnd(rT) + '_' + rnd(rB) + '_' + rnd(h) + '_' + (o.seg || 48) + (o.open ? 'o' : ''), () => new THREE.CylinderGeometry(rT, rB, h, o.seg || 48, 1, !!o.open));
+      const sgm = sg(o.seg || 48);
+      const g = geo('c' + rnd(rT) + '_' + rnd(rB) + '_' + rnd(h) + '_' + sgm + (o.open ? 'o' : ''), () => new THREE.CylinderGeometry(rT, rB, h, sgm, 1, !!o.open));
       const me = mesh(g, m, o);
       if (o.axis === 'x') me.rotation.z = PI / 2; else if (o.axis === 'z') me.rotation.x = PI / 2;
       return me;
     }
     function torus(R, r, m, o) {
       o = o || {};
-      const g = geo('t' + rnd(R) + '_' + rnd(r) + '_' + (o.seg || 48) + '_' + (o.arc || 0), () => new THREE.TorusGeometry(R, r, 12, o.seg || 48, o.arc || TAU));
+      const sgm = sg(o.seg || 48), rad = Math.max(8, Math.round(12 * Math.min(DETAIL, 1.8)));
+      const g = geo('t' + rnd(R) + '_' + rnd(r) + '_' + sgm + '_' + (o.arc || 0), () => new THREE.TorusGeometry(R, r, rad, sgm, o.arc || TAU));
       const me = mesh(g, m, o);
       if (o.axis === 'x') me.rotation.y = PI / 2; else if (o.axis === 'y') me.rotation.x = PI / 2;
       return me;
     }
-    function sphere(r, m, o) { return mesh(geo('s' + rnd(r), () => new THREE.SphereGeometry(r, 32, 20)), m, o); }
+    function sphere(r, m, o) { return mesh(geo('s' + rnd(r), () => new THREE.SphereGeometry(r, sg(32), sg(20))), m, o); }
     function lathe(pts, m, o) { // pts: [[r,y],...]
       o = o || {};
-      const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), o.seg || 48);
+      const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), sg(o.seg || 48));
       const me = mesh(g, m, o);
       if (o.axis === 'x') me.rotation.z = -PI / 2; else if (o.axis === 'z') me.rotation.x = PI / 2;
       return me;
     }
     function extrude(shape, depth, m, o) {
       o = o || {};
-      const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: !!o.bevel, bevelSize: o.bevel || 0, bevelThickness: o.bevel || 0, bevelSegments: 2, curveSegments: o.seg || 24 });
+      const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: !!o.bevel, bevelSize: o.bevel || 0, bevelThickness: o.bevel || 0, bevelSegments: 2, curveSegments: Math.max(8, Math.round((o.seg || 24) * DETAIL)) });
       g.translate(0, 0, -depth / 2);
       return mesh(g, m, o);
     }
@@ -141,15 +151,31 @@
       return out;
     }
     const tr = (g, x, y, z) => { const c = g.clone(); c.translate(x || 0, y || 0, z || 0); return c; };
-    // perno hexagonal: cabeza en +Y (y 0..h), vástago hacia -Y
+    // perno hexagonal con chaflán, cara de apoyo y anillos de rosca: cabeza en +Y (y 0..h), vástago hacia -Y
     function boltGeo(d, len) {
-      return geo('bolt' + rnd(d) + '_' + rnd(len), () => merge([
-        tr(new THREE.CylinderGeometry(d * 0.92, d * 0.92, d * 0.66, 6), 0, d * 0.33, 0),
-        tr(new THREE.CylinderGeometry(d * 0.5, d * 0.5, len, 14), 0, -len / 2, 0)
+      return geo('bolt' + rnd(d) + '_' + rnd(len), () => {
+        const parts = [
+          tr(new THREE.CylinderGeometry(d * 0.92, d * 0.92, d * 0.56, 6), 0, d * 0.34, 0),
+          tr(new THREE.CylinderGeometry(d * 0.74, d * 0.92, d * 0.1, 6), 0, d * 0.67, 0),
+          tr(new THREE.CylinderGeometry(d * 0.86, d * 0.86, d * 0.06, sg(20)), 0, d * 0.03, 0),
+          tr(new THREE.CylinderGeometry(d * 0.5, d * 0.5, len, sg(16)), 0, -len / 2, 0)
+        ];
+        const n = Math.min(8, Math.floor(len / (d * 0.32)));
+        for (let i = 0; i < n; i++) parts.push(tr(new THREE.TorusGeometry(d * 0.5, d * 0.05, 5, sg(16)).rotateX(PI / 2), 0, -len + d * 0.2 + i * d * 0.3, 0));
+        return merge(parts);
+      });
+    }
+    function nutGeo(d) {
+      return geo('nut' + rnd(d), () => merge([
+        new THREE.CylinderGeometry(d * 0.92, d * 0.92, d * 0.64, 6),
+        tr(new THREE.CylinderGeometry(d * 0.74, d * 0.92, d * 0.08, 6), 0, d * 0.36, 0),
+        tr(new THREE.CylinderGeometry(d * 0.92, d * 0.74, d * 0.08, 6), 0, -d * 0.36, 0)
       ]));
     }
-    function nutGeo(d) { return geo('nut' + rnd(d), () => tr(new THREE.CylinderGeometry(d * 0.92, d * 0.92, d * 0.8, 6), 0, 0, 0)); }
-    function washerGeo(d) { return geo('wsh' + rnd(d), () => new THREE.CylinderGeometry(d * 1.05, d * 1.05, d * 0.14, 24)); }
+    // arandela plana con orificio
+    function washerGeo(d) {
+      return geo('wsh' + rnd(d), () => new THREE.LatheGeometry([[d * 0.55, -d * 0.07], [d * 1.05, -d * 0.07], [d * 1.05, d * 0.07], [d * 0.55, d * 0.07], [d * 0.55, -d * 0.07]].map(p => new THREE.Vector2(p[0], p[1])), sg(28)));
+    }
 
     /* ---------- instanciado ---------- */
     // list: [{p:[x,y,z], r:[rx,ry,rz], s:[sx,sy,sz]|number}]
@@ -173,10 +199,10 @@
     const ROT = { y: [0, 0, 0], x: [0, 0, -PI / 2], z: [PI / 2, 0, 0], nx: [0, 0, PI / 2], nz: [-PI / 2, 0, 0], ny: [PI, 0, 0] };
     function bolts(list, d, len, axis, o) { // list: [[x,y,z],..]
       o = o || {}; const r = ROT[axis || 'y'];
-      return inst(boltGeo(d, len), o.mat || 'steelDark', list.map(p => ({ p, r })), o);
+      return inst(boltGeo(d, len), o.mat || 'steelDark', list.map(p => ({ p, r })), Object.assign({}, o, { mat: undefined }));
     }
-    function nuts(list, d, axis, o) { o = o || {}; const r = ROT[axis || 'y']; return inst(nutGeo(d), o.mat || 'steelDark', list.map(p => ({ p, r })), o); }
-    function washers(list, d, axis, o) { o = o || {}; const r = ROT[axis || 'y']; return inst(washerGeo(d), o.mat || 'steel', list.map(p => ({ p, r })), o); }
+    function nuts(list, d, axis, o) { o = o || {}; const r = ROT[axis || 'y']; return inst(nutGeo(d), o.mat || 'steelDark', list.map(p => ({ p, r })), Object.assign({}, o, { mat: undefined })); }
+    function washers(list, d, axis, o) { o = o || {}; const r = ROT[axis || 'y']; return inst(washerGeo(d), o.mat || 'steel', list.map(p => ({ p, r })), Object.assign({}, o, { mat: undefined })); }
     function line(p0, p1, n) { const a = []; for (let i = 0; i < n; i++) { const t = n === 1 ? 0.5 : i / (n - 1); a.push([p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t, p0[2] + (p1[2] - p0[2]) * t]); } return a; }
     function grid(cx, cy, cz, nx, ny, sx, sy, plane) {
       const a = [];
@@ -208,16 +234,16 @@
       }
       const last = pts[pts.length - 1];
       if (prev.distanceTo(last) > 1e-5) path.add(new THREE.LineCurve3(prev.clone(), last.clone()));
-      const segs = Math.max(8, Math.round(path.getLength() * (o.res || 90)));
-      const g = new THREE.TubeGeometry(path, segs, r, o.radial || 20, false);
+      const segs = Math.max(8, Math.round(path.getLength() * (o.res || 90) * DETAIL));
+      const g = new THREE.TubeGeometry(path, segs, r, sg(o.radial || 20), false);
       return mesh(g, m, o);
     }
     // manguera / cable flexible (curva Catmull-Rom)
     function hose(points, r, m, o) {
       o = o || {};
       const c = new THREE.CatmullRomCurve3(points.map(a => V3(a[0], a[1], a[2])), false, 'catmullrom', o.tension === undefined ? 0.5 : o.tension);
-      const segs = Math.max(12, Math.round(c.getLength() * (o.res || 70)));
-      const g = new THREE.TubeGeometry(c, segs, r, o.radial || 14, false);
+      const segs = Math.max(12, Math.round(c.getLength() * (o.res || 70) * DETAIL));
+      const g = new THREE.TubeGeometry(c, segs, r, sg(o.radial || 14), false);
       return mesh(g, m, o);
     }
     // férula sanitaria + abrazadera + empaque (orientada en axis)
@@ -233,9 +259,10 @@
 
     /* ---------- texturas ---------- */
     function canvasTex(w, h, draw) {
-      const c = document.createElement('canvas'); c.width = w; c.height = h;
-      draw(c.getContext('2d'), w, h);
-      const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.encoding = THREE.sRGBEncoding; return t;
+      const c = document.createElement('canvas'); c.width = w * TS; c.height = h * TS;
+      const g = c.getContext('2d'); g.scale(TS, TS);
+      draw(g, w, h);
+      const t = new THREE.CanvasTexture(c); t.anisotropy = 16; t.encoding = THREE.sRGBEncoding; return t;
     }
     function label(txt, w, h, o) { // placa rotulada (plano) mirando +Z
       o = o || {};
@@ -273,7 +300,7 @@
     function explode(obj, x, y, z) { expl.push({ obj, base: obj.position.clone(), vec: V3(x, y, z) }); }
     function spin(obj, axis, k) { spinners.push({ obj, axis: axis || 'x', k: k === undefined ? 1 : k }); }
 
-    return { THREE, PI, TAU, V3, root, context, comps, elems, shells, spinners, flows, expl, anim, state, mat, geo, mesh, box, rbox, cyl, torus, sphere, lathe, extrude, ringShape, rectShape, put, merge, tr, boltGeo, nutGeo, washerGeo, inst, bolts, nuts, washers, line, grid, pipe, hose, clamp, canvasTex, label, comp, el, attach, explode, spin, ROT };
+    return { matCache, geoCache, detail: DETAIL, TS, sg, THREE, PI, TAU, V3, root, context, comps, elems, shells, spinners, flows, expl, anim, state, mat, geo, mesh, box, rbox, cyl, torus, sphere, lathe, extrude, ringShape, rectShape, put, merge, tr, boltGeo, nutGeo, washerGeo, inst, bolts, nuts, washers, line, grid, pipe, hose, clamp, canvasTex, label, comp, el, attach, explode, spin, ROT };
   }
 
   window.MODEL_BUILDERS = window.MODEL_BUILDERS || [];

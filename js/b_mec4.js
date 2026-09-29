@@ -41,19 +41,23 @@
       g5.add(cyl(0.022, 0.022, 0.1, 'steel', { axis: 'x', pos: [cx + 0.09, 1.62, cz], seg: 32 })); g5.add(flange(cx + 0.14, 1.62, cz, 'x', 0.022));
       g5.add(cyl(0.022, 0.022, 0.1, 'steel', { axis: 'x', pos: [cx + 0.09, 0.62, cz], seg: 32 })); g5.add(flange(cx + 0.14, 0.62, cz, 'x', 0.022));
       g5.add(cyl(0.028, 0.028, 0.1, 'steel', { axis: 'z', pos: [cx, 0.72, cz + 0.09], seg: 32 })); g5.add(flange(cx, 0.72, cz + 0.145, 'z', 0.028));
-      g5.add(rbox(0.08, 0.05, 0.004, 0.002, 'black', { pos: [cx - 0.01, 1.2, cz + r * 1.05 + 0.0] }));
+      g5.add(K.label('MBS MLI 114 · L=1450\nAISI 316L · PS 10 bar', 0.11, 0.06, { bg: '#d3d7db', fg: '#111', fs: 20, pos: [cx - 0.01, 1.2, cz + r * 1.05 + 0.001] }));
       [[cx - 0.06, 1.0], [cx + 0.06, 1.0]].forEach(p => g5.add(rbox(0.02, 0.05, 0.04, 0.004, 'steelDark', { pos: [p[0] * 0 + cx + (p[0] < cx ? -0.07 : 0.07), 1.0, cz] })));
       // 8 bomba PROLAC HCP 50-150 con motor 4 kW
       const g8 = el(C, 8), px = cx - 0.3, py = 0.36, pz = 0.85;
       g8.add(lathe([[0.0, -0.05], [0.115, -0.05], [0.13, -0.02], [0.13, 0.03], [0.09, 0.055], [0.0, 0.055]], 'steel', { axis: 'x', pos: [px, py, pz], seg: 64 }));
       g8.add(cyl(0.03, 0.03, 0.12, 'steel', { axis: 'x', pos: [px - 0.12, py, pz], seg: 40 })); g8.add(flange(px - 0.18, py, pz, 'x', 0.03));
       g8.add(cyl(0.026, 0.026, 0.16, 'steel', { pos: [px, py + 0.19, pz], seg: 40 })); g8.add(flange(px, py + 0.28, pz, 'y', 0.026));
+      const vb = []; for (let i = 0; i < 12; i++) vb.push([px + 0.075, py + Math.cos(i * TAU / 12) * 0.145, pz + Math.sin(i * TAU / 12) * 0.145]);
+      g8.add(K.bolts(vb, 0.008, 0.03, 'x', { mat: 'steel' }));
       g8.add(cyl(0.16, 0.16, 0.02, 'steelDark', { axis: 'x', pos: [px + 0.06, py, pz], seg: 64 }));
       g8.add(cyl(0.1, 0.1, 0.2, 'steelDark', { axis: 'x', pos: [px + 0.16, py, pz], seg: 48 }));
       const mo = new THREE.Group(); mo.position.set(px + 0.3, py, pz); g8.add(mo);
       mo.add(cyl(0.105, 0.105, 0.36, 'weg', { axis: 'x', seg: 56 })); for (let i = 0; i < 12; i++) mo.add(torus(0.106, 0.004, 'weg', { axis: 'x', pos: [-0.17 + i * 0.03, 0, 0], seg: 56 }));
       mo.add(cyl(0.11, 0.09, 0.07, 'weg', { axis: 'x', pos: [0.2, 0, 0], seg: 56, mat: { color: 0x23508d } })); mo.add(cyl(0.085, 0.085, 0.03, 'black', { axis: 'x', pos: [0.245, 0, 0], seg: 40 }));
-      mo.add(rbox(0.1, 0.06, 0.11, 0.008, 'weg', { pos: [0, 0.135, 0] })); mo.add(rbox(0.3, 0.02, 0.16, 0.004, 'weg', { pos: [-0.02, -0.11, 0] }));
+      mo.add(rbox(0.1, 0.06, 0.11, 0.008, 'weg', { pos: [0, 0.135, 0] }));
+      mo.add(K.label('WEG W22 · 4 kW · 2P\n380 V 50 Hz IE3', 0.1, 0.055, { bg: '#d3d7db', fg: '#111', fs: 17, pos: [-0.02, 0.02, 0.1063] }));
+      mo.add(K.bolts([[-0.03, 0.135, 0.056], [0.03, 0.135, 0.056], [-0.03, 0.135, -0.056], [0.03, 0.135, -0.056]].map(p => [p[0], p[1] + 0.03, p[2] * 0.6]), 0.005, 0.012, 'y', { mat: 'steel' })); mo.add(rbox(0.3, 0.02, 0.16, 0.004, 'weg', { pos: [-0.02, -0.11, 0] }));
       g8.add(rbox(0.62, 0.02, 0.24, 0.004, 'brushed', { pos: [px + 0.15, py - 0.16, pz] })); [-1, 1].forEach(sx => [-1, 1].forEach(sz => g8.add(rbox(0.04, 0.18, 0.04, 0.004, 'brushed', { pos: [px + 0.15 + sx * 0.27, py - 0.26, pz + sz * 0.1] }))));
       g8.add(rbox(0.62, 0.02, 0.24, 0.004, 'brushed', { pos: [px + 0.15, 0.03, pz], cast: false })); [-1, 1].forEach(sx => [-1, 1].forEach(sz => g8.add(K.level(px + 0.15 + sx * 0.27, 0, pz + sz * 0.1, 0.02, 0.02))));
       K.pumpMotor = mo;

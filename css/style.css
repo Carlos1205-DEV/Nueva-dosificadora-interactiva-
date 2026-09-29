@@ -233,3 +233,18 @@ table.t td,table.t th{padding:6px 4px;border-bottom:1px solid var(--line);text-a
 
 #dock button#tStop.on{background:var(--crit);border-color:var(--crit);color:#fff}
 #dock button#tStop{color:#ffb9b3}
+
+/* ---------- despiece ---------- */
+#dpins{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:8}
+.dpin{position:absolute;transform:translate(-50%,-100%);display:flex;align-items:center;gap:5px;pointer-events:auto;cursor:pointer;background:#0b0e11d8;border:1px solid var(--c,var(--amber));border-radius:12px;padding:2px 7px 2px 2px;font:600 11px var(--font);color:#fff;white-space:nowrap}
+.dpin i{width:17px;height:17px;border-radius:50%;background:var(--c,var(--amber));color:#14110a;display:grid;place-items:center;font-style:normal;font-size:10px;font-weight:700}
+.dpin span{display:none}.dpin:hover span,.dpin.on span{display:inline}
+.dpin b{font-weight:700;color:var(--c,var(--amber));margin-left:1px}.dpin.on b{color:#14110a}
+.dpin.extra{opacity:.85;border-style:dashed}
+.dpin.on{background:var(--amber);color:#14110a;border-color:var(--amber)}.dpin.on i{background:#14110a;color:var(--amber)}
+.dpin:hover{z-index:3}
+.despiece .field input{width:100%}
+.despiece .btn{flex:1 1 auto}
+#dock select{min-width:96px}
+
+.tbl{position:relative;max-height:min(50vh,440px);overflow-y:auto;border-top:1px solid var(--line)}

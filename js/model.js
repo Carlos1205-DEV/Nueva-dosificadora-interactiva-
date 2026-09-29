@@ -1,9 +1,11 @@
 /* Ensamblado del modelo 3D de la DOSIFICADORA (moldeadora multiformato) a partir de la taxonomía.
- * Cada componente (19) es un grupo; cada elemento de la taxonomía (295) es un sub-grupo seleccionable. */
+ * Cada componente (19) es un grupo; cada elemento de la taxonomía (295) es un sub-grupo seleccionable.
+ * Cada hijo directo de un componente queda dentro de una "unidad" (grupo envoltorio) que el despiece puede desplazar. */
 (function () {
   'use strict';
-  window.createDosificadoraModel = function () {
-    const K = window.createKit(), THREE = K.THREE, TAXO = window.TAXO;
+  window.createDosificadoraModel = function (opts) {
+    opts = opts || {};
+    const K = window.createKit(opts), THREE = K.THREE, TAXO = window.TAXO;
     TAXO.comps.forEach(c => K.comp(c.id, c.name, c.sys));
     window.MODEL_BUILDERS.forEach(b => b(K));
 
@@ -20,8 +22,40 @@
     flowLine([[H.x, 0.72, H.z + 0.6], [H.x, 0.72, H.z + 0.02], [H.x, 1.98, H.z], [H.x, 2.6, H.z], [2.15, 2.6, H.z], [2.15, 2.6, 0.17], [1.5, 2.6, 0.17], [1.5, 3.02, 0.17]], 0x7fb2ff, 48, 0.035, 0.5);
     flowLine([[H.x + 0.55, 2.15, H.z], [H.x + 0.55, 1.62, H.z], [H.x + 0.14, 1.62, H.z]], 0xffffff, 18, 0.04, 0.6);
 
-    /* ---------- registro y cajas envolventes ---------- */
-    const meshes = [], meshesByElem = {}, meshesByComp = {};
+    /* ---------- unidades de despiece: cada hijo directo de un componente va dentro de un envoltorio ---------- */
+    const units = {};
+    TAXO.comps.forEach(c => {
+      const cg = K.comps[c.id]; units[c.id] = [];
+      cg.children.slice().forEach(ch => {
+        const w = new THREE.Group(); w.name = 'unidad'; w.userData.unit = true;
+        cg.add(w); w.add(ch);
+        units[c.id].push({ obj: w, child: ch, key: ch.userData.elem || null, name: ch.name || '' });
+      });
+    });
+
+    /* ---------- cajas envolventes (con soporte de InstancedMesh) ---------- */
+    const tmpB = new THREE.Box3(), tmpM = new THREE.Matrix4();
+    function instBox(o) {
+      const b = new THREE.Box3(), g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
+      for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, tmpM); tmpB.copy(g.boundingBox).applyMatrix4(tmpM); b.union(tmpB); }
+      return b.applyMatrix4(o.matrixWorld);
+    }
+    function objBox(obj) {
+      const b = new THREE.Box3(), t = new THREE.Box3(); obj.updateWorldMatrix(true, true);
+      obj.traverse(o => {
+        if (o.isInstancedMesh) b.union(instBox(o));
+        else if (o.isMesh) { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); t.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); b.union(t); }
+      });
+      return b;
+    }
+    function boxOfMeshes(list) {
+      const b = new THREE.Box3(), t = new THREE.Box3();
+      list.forEach(o => { if (o.isInstancedMesh) b.union(instBox(o)); else { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); t.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); b.union(t); } });
+      return b;
+    }
+
+    /* ---------- registro ---------- */
+    const meshes = [], meshesByElem = {}, meshesByComp = {}, ctxMeshes = [];
     K.root.updateMatrixWorld(true);
     function keyOf(o) {
       let elem = null, comp = null;
@@ -38,29 +72,11 @@
       const k = keyOf(o); o.userData.elem = k.elem; o.userData.comp = k.comp;
       let ctx = false; for (let n = o; n; n = n.parent) if (n === K.context) ctx = true;
       o.userData.context = ctx || !k.comp;
-      if (o.userData.context) return;
+      if (o.userData.context) { if (o.userData.context && !o.userData.floor) ctxMeshes.push(o); return; }
       meshes.push(o);
       (meshesByComp[k.comp] = meshesByComp[k.comp] || []).push(o);
       if (k.elem) (meshesByElem[k.elem] = meshesByElem[k.elem] || []).push(o);
     });
-    const tmp = new THREE.Box3();
-    function boxOf(list) {
-      const b = new THREE.Box3();
-      list.forEach(o => { if (o.isInstancedMesh) { o.computeBoundingBox && o.computeBoundingBox(); tmp.copy(o.boundingBox || new THREE.Box3().setFromObject(o)).applyMatrix4(o.matrixWorld); } else tmp.setFromObject(o); b.union(tmp); });
-      return b;
-    }
-    // InstancedMesh.computeBoundingBox no existe en r14x: calcular a mano
-    function instBox(o) {
-      const b = new THREE.Box3(), m = new THREE.Matrix4(), g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
-      const gb = g.boundingBox; const t = new THREE.Box3();
-      for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m); t.copy(gb).applyMatrix4(m); b.union(t); }
-      return b.applyMatrix4(o.matrixWorld);
-    }
-    function boxOfMeshes(list) {
-      const b = new THREE.Box3();
-      list.forEach(o => { b.union(o.isInstancedMesh ? instBox(o) : tmp.setFromObject(o).clone()); });
-      return b;
-    }
     Object.values(K.elems).forEach(e => {
       const list = meshesByElem[e.key] || [];
       e.meshes = list; e.box = list.length ? boxOfMeshes(list) : new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -68,37 +84,46 @@
     });
     const compInfo = {};
     TAXO.comps.forEach(c => {
-      const list = meshesByComp[c.id] || [];
-      const b = boxOfMeshes(list);
+      const list = meshesByComp[c.id] || [], b = boxOfMeshes(list);
       compInfo[c.id] = { box: b, center: b.getCenter(new THREE.Vector3()), size: b.getSize(new THREE.Vector3()), meshes: list };
     });
-
-    // verificación de cobertura de la taxonomía
     const missing = [];
     TAXO.comps.forEach(c => c.items.forEach(it => { const e = K.elems[c.id + ':' + it.i]; if (!e || !e.meshes.length) missing.push(c.id + ':' + it.i + ' ' + it.n); }));
     if (missing.length) console.warn('Elementos sin geometría:', missing);
 
+    let triangles = 0;
+    meshes.forEach(m => { const g = m.geometry, n = (g.index ? g.index.count : g.attributes.position.count) / 3; triangles += n * (m.isInstancedMesh ? m.count : 1); });
+
     /* ---------- API ---------- */
     const state = K.state;
     const api = {
-      root: K.root, kit: K, comps: K.comps, elems: K.elems, compInfo, meshes, meshesByElem, meshesByComp, shells: K.shells, state, missing,
-      elemDoor: K.elemDoor,
+      root: K.root, kit: K, comps: K.comps, elems: K.elems, compInfo, units, meshes, ctxMeshes, meshesByElem, meshesByComp, shells: K.shells, state, missing, triangles,
+      detail: K.detail, elemDoor: K.elemDoor, objBox, instBox, boxOfMeshes,
       setExplode(t) { K.expl.forEach(e => e.obj.position.copy(e.base).addScaledVector(e.vec, t)); },
       setRunning(v) { state.running = v; },
       setEstop(v) { state.estop = v; K.drawHmi && K.drawHmi(state.t); },
       setDoor(k, open) { state.doorT[k] = open ? 1 : 0; },
+      // muestra solo un componente (vista "por separado"); null restaura todo
+      setOnly(compId) {
+        Object.keys(K.comps).forEach(id => { K.comps[id].visible = !compId || id === compId; });
+        K.context.children.forEach(o => { if (!o.userData.floor) o.visible = !compId; });
+        K.flows.forEach(f => { f.hidden = !!compId; });
+      },
+      dispose() {
+        K.root.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+        Object.values(K.matCache || {}).forEach(m => m.dispose());
+      },
       update(dt) {
         state.t += dt;
         const run = state.running && !state.estop, target = run ? 4.0 : 0;
         state.speed += (target - state.speed) * Math.min(1, dt * 2.5);
         K.spinners.forEach(s => { s.obj.rotation[s.axis] += s.k * state.speed * dt; });
         K.anim.forEach(fn => fn(dt, state));
-        // ciclo de las cuchillas
         if (K.corteSup) { const p = run ? Math.max(0, Math.sin(state.t * 1.6)) : 0; K.corteSup.position.z += ((-0.31 + p * 0.26) - K.corteSup.position.z) * Math.min(1, dt * 6); }
         if (K.corteDel) { const p = run ? 0.5 - 0.5 * Math.cos(state.t * 1.2) : 0; K.corteDel.position.y += ((2.34 - p * 0.14) - K.corteDel.position.y) * Math.min(1, dt * 6); }
         if (K.repDoor) { const p = run ? 0.5 - 0.5 * Math.cos(state.t * 0.9) : 0; K.repDoor.position.x += (((K.L.hopper.x0 + K.L.hopper.x1) / 2 - p * 0.7) - K.repDoor.position.x) * Math.min(1, dt * 5); }
         K.flows.forEach(f => {
-          f.p.visible = run; if (!run) return;
+          f.p.visible = run && !f.hidden; if (!f.p.visible) return;
           f.offset = (f.offset + dt * f.speed / f.total * 0.9) % 1;
           const arr = f.p.geometry.attributes.position.array;
           for (let i = 0; i < f.n; i++) {
@@ -109,7 +134,7 @@
           }
           f.p.geometry.attributes.position.needsUpdate = true;
         });
-        if (K.pilotTall) K.pilotTall.material.emissive && (K.pilotTall.material.emissive.setHex(run ? 0x18c04a : 0x0b3a1a));
+        if (K.pilotTall && K.pilotTall.material.emissive) K.pilotTall.material.emissive.setHex(run ? 0x18c04a : 0x0b3a1a);
       }
     };
     return api;

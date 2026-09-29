@@ -70,7 +70,7 @@
       // 12 pantalla táctil 10" en la puerta del armario pequeño (gira con la puerta)
       const ps = K.doors.small.pivot, hx = -SM.w / 2 + 0.03, h12 = K.attach(C, 12, ps);
       h12.add(rbox(0.29, 0.22, 0.02, 0.006, 'abLight', { pos: [hx, 0.025, 0.02], mat: { color: 0x2a2f36 } }));
-      const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 400; const tex = new THREE.CanvasTexture(cvs); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
+      const cvs = document.createElement('canvas'); cvs.width = 640 * K.TS; cvs.height = 400 * K.TS; const tex = new THREE.CanvasTexture(cvs); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
       const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.156), new THREE.MeshBasicMaterial({ map: tex })); scr.position.set(hx, 0.025, 0.0316); h12.add(scr);
       K.hmi = { cv: cvs, ctx: cvs.getContext('2d'), tex, last: -1 };
       h12.add(label('PanelView 800', 0.05, 0.01, { bg: '#2a2f36', fs: 26, pos: [hx, -0.076, 0.031] }));
@@ -87,7 +87,7 @@
       K.attach(C, 14, ps).add(hose([[hx + 0.14, 0.0, -0.02], [hx + 0.2, -0.06, -0.05], [hx + 0.3, -0.09, -0.06]], 0.0035, 'cableBlue', { radial: 8 }));
       // dibujo de la pantalla
       K.drawHmi = function (t) {
-        const c = K.hmi.ctx, W = 640, H = 400, run = state.running && !state.estop;
+        const c = K.hmi.ctx, W = 640, H = 400, run = state.running && !state.estop; c.setTransform(K.TS, 0, 0, K.TS, 0, 0);
         c.fillStyle = '#d7e2f2'; c.fillRect(0, 0, W, H);
         c.fillStyle = state.estop ? '#c22' : '#173f9b'; c.fillRect(0, 0, W, 40); c.fillStyle = '#fff'; c.font = 'bold 24px sans-serif'; c.textAlign = 'left';
         c.fillText(state.estop ? 'PARO DE EMERGENCIA' : 'MOLDEADORA MULTIFORMATO · PROCESO', 14, 28);

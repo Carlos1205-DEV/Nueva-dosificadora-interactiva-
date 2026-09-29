@@ -31,6 +31,9 @@
         const a = new THREE.Group(); a.position.set(0, r * 1.9 + 0.015, 0); g.add(a);
         a.add(cyl(ar, ar, ah, 'blue', { pos: [0, ah / 2, 0], seg: 40, mat: { metalness: 0.5 } }));
         a.add(cyl(ar * 1.05, ar * 1.05, 0.014, 'steelDark', { pos: [0, 0.007, 0], seg: 40 }));
+        const fb = []; for (let i = 0; i < 6; i++) fb.push([Math.cos(i * TAU / 6) * ar * 0.86, 0.014, Math.sin(i * TAU / 6) * ar * 0.86]);
+        a.add(K.bolts(fb, 0.0035, 0.01, 'y', { mat: 'steel' }));
+        a.add(K.label(big ? 'S-E T2' : 'S-E T1', ar * 0.9, ar * 0.36, { bg: '#e6e9ec', fg: '#0d2f66', fs: 34, pos: [0, ah * 0.5, ar + 0.0006] }));
         a.add(cyl(ar * 1.05, ar * 1.05, 0.014, 'steelDark', { pos: [0, ah - 0.007, 0], seg: 40 }));
         a.add(cyl(ar * 0.5, ar * 0.4, 0.02, 'black', { pos: [0, ah + 0.01, 0], seg: 24 }));
         a.add(cyl(0.006, 0.006, 0.04, 'steel', { axis: 'x', pos: [ar + 0.012, ah - 0.03, 0], seg: 10 }));
@@ -51,6 +54,9 @@
         [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(k => g.add(cyl(0.005, 0.005, L * 0.98, 'steel', { axis: 'x', pos: [0, k[0] * r * 1.0, k[1] * r * 1.0], seg: 8, cast: false })));
         g.add(cyl(0.008, 0.008, 0.025, 'steel', { pos: [s * (L / 2 - 0.04), r * 1.2 + 0.006, 0], seg: 12 }));
       });
+      const tn = []; [-1, 1].forEach(s => [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(k => tn.push([s * (L / 2 + 0.03), k[0] * r * 1.0, k[1] * r * 1.0])));
+      g.add(K.nuts(tn, 0.006, 'x', { mat: 'steel' }));
+      [-1, 1].forEach(s => { g.add(cyl(0.007, 0.007, 0.02, 'brass', { pos: [s * (L / 2 - 0.03), r * 1.15 + 0.01, 0], seg: 12 })); g.add(cyl(0.0045, 0.0045, 0.03, 'blueLight', { pos: [s * (L / 2 - 0.03), r * 1.15 + 0.03, 0], seg: 8 })); });
       // vástago cromado y horquilla
       g.add(cyl(r * 0.28, r * 0.28, stroke, 'steel', { axis: 'x', pos: [L / 2 + stroke / 2, 0, 0], seg: 32, mat: { roughness: 0.1 } }));
       g.add(cyl(r * 0.36, r * 0.36, 0.03, 'steelDark', { axis: 'x', pos: [L / 2 + stroke + 0.015, 0, 0], seg: 24 }));
@@ -71,6 +77,7 @@
       g.add(cyl(r * 1.02, r * 1.02, r * 0.9, 'steel', { axis: 'z', pos: [0, 0, r * 0.4], seg: 40 }));
       g.add(cyl(r * 0.5, r * 0.5, r * 1.0, 'black', { axis: 'z', pos: [0, 0, r * 0.4], seg: 32 }));
       g.add(cyl(r * 0.06, r * 0.06, r * 0.4, 'brass', { pos: [0, r * 1.45, r * 0.4], seg: 8 }));
+      g.add(K.bolts([[-w * 0.4, 0, r * 0.32], [w * 0.4, 0, r * 0.32]], r * 0.2, r * 0.5, 'z', { mat: 'steel' }));
       return g;
     };
 
@@ -104,6 +111,9 @@
       g.add(cyl(0.06, 0.06, 0.05, 'black', { axis: 'x', pos: [0.37, 0, 0], seg: 32 }));
       g.add(rbox(0.09, 0.045, 0.08, 0.008, 'black', { pos: [0.2, 0.09, 0] }));
       g.add(cyl(0.012, 0.012, 0.03, 'steel', { pos: [-0.04, -0.11, 0], seg: 12 }));
+      g.add(K.label('SEW-EURODRIVE\nSA47 DRN71M4', 0.075, 0.042, { bg: '#d3d7db', fg: '#111', fs: 18, pos: [0.2, 0.0, 0.0705] }));
+      const fbl = []; for (let i = 0; i < 6; i++) fbl.push([Math.cos(i * TAU / 6) * 0.062, Math.sin(i * TAU / 6) * 0.062, 0.1]);
+      g.add(K.bolts(fbl, 0.006, 0.02, 'z', { mat: 'steel' }));
       return g;
     };
 

@@ -94,6 +94,27 @@
       [0.55, 1.0].forEach(h => context.add(cyl(0.016, 0.016, 3.4, bx, { axis: 'x', pos: [0, dk + h, railZ], seg: 16 })));
       [1.42, 0.6].forEach(z => { [0.55, 1.0].forEach(h => context.add(cyl(0.016, 0.016, 0.94, bx, { axis: 'z', pos: [1.7, dk + h, (1.42 + 0.5) / 2 + (z === 0.6 ? -0.0 : 0)], seg: 16 }))); });
       [0.5, 1.4].forEach(z => context.add(cyl(0.017, 0.017, 1.0, bx, { pos: [1.7, dk + 0.5, z], seg: 16 })));
+      // piso antiderrapante (chapa lagrimada procedural) en plataforma y escalones
+      const treadTex = K.canvasTex(256, 256, (g, w, h) => {
+        g.fillStyle = '#7d858c'; g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+          [[0, 0, 1], [32, 32, -1]].forEach(([ox, oy, sgn]) => {
+            const cx = i * 64 + ox + 16, cy = j * 64 + oy + 16;
+            g.save(); g.translate(cx, cy); g.rotate(sgn * PI / 4 + (i + j) % 2 * PI / 2);
+            g.fillStyle = '#5b6268'; g.beginPath(); g.ellipse(1.5, 1.5, 15, 5.5, 0, 0, TAU); g.fill();
+            g.fillStyle = '#c3cad0'; g.beginPath(); g.ellipse(0, 0, 14, 5, 0, 0, TAU); g.fill();
+            g.fillStyle = '#e4e9ed'; g.beginPath(); g.ellipse(-1.5, -1, 8, 1.8, 0, 0, TAU); g.fill();
+            g.restore();
+          });
+        }
+      });
+      treadTex.wrapS = treadTex.wrapT = THREE.RepeatWrapping;
+      const treadMat = (w, d) => { const t = treadTex.clone(); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(w / 0.16, d / 0.16); return new THREE.MeshStandardMaterial({ map: t, metalness: 0.8, roughness: 0.42 }); };
+      const deckTop = new THREE.Mesh(new THREE.PlaneGeometry(3.44, 0.9), treadMat(3.44, 0.9)); deckTop.rotation.x = -PI / 2; deckTop.position.set(0, dk + 0.0006, 1.0); deckTop.receiveShadow = true; context.add(deckTop);
+      // rodapié y remates esféricos de los pasamanos
+      context.add(rbox(3.4, 0.1, 0.012, 0.003, bx, { pos: [0, dk + 0.05, 1.445] }));
+      [0.55, 1.0].forEach(h => [-1.7, 1.7].forEach(x => context.add(sphere(0.02, bx, { pos: [x, dk + h, 1.42] }))));
+      for (let i = 0; i <= 7; i++) context.add(sphere(0.019, bx, { pos: [-1.7 + i * 3.4 / 7, dk + 1.0, 1.42] }));
       // escalera al lado -X
       const st = new THREE.Group(); context.add(st);
       const run = 2.6, n = 10, rise = dk / n, stepD = run / n;
@@ -101,7 +122,11 @@
       [1.36, 0.66].forEach(z => {
         const m = rbox(sl0 + 0.1, 0.16, 0.04, 0.008, bx, { pos: [-1.7 - run / 2, dk / 2 - 0.05, z] }); m.rotation.z = sa0; st.add(m);
       });
-      for (let i = 0; i < n; i++) st.add(box(stepD - 0.02, 0.03, 0.66, 'steelDark', { pos: [-1.7 - run + (i + 0.5) * stepD, rise * (i + 1) - 0.01, 1.0] }));
+      for (let i = 0; i < n; i++) {
+        const cxS = -1.7 - run + (i + 0.5) * stepD, cyS = rise * (i + 1) - 0.01;
+        st.add(box(stepD - 0.02, 0.03, 0.66, 'steelDark', { pos: [cxS, cyS, 1.0] }));
+        const tp = new THREE.Mesh(new THREE.PlaneGeometry(0.66, stepD - 0.03), treadMat(0.66, stepD - 0.03)); tp.rotation.x = -PI / 2; tp.rotation.z = PI / 2; tp.position.set(cxS, cyS + 0.0156, 1.0); st.add(tp);
+      }
       const sl = Math.hypot(run, dk), sa = Math.atan2(dk, run);
       [1.4, 0.62].forEach(z => {
         [0.6, 1.0].forEach(h => { const r = cyl(0.016, 0.016, sl, bx, { seg: 16 }); r.rotation.z = PI / 2 + sa; r.position.set(-1.7 - run / 2, dk / 2 + h, z); st.add(r); });
@@ -133,6 +158,13 @@
       gShell.add(rbox(3.5, 0.2, 0.016, 0.003, 'panel', { pos: [0, by0 + 0.12, L.bz1 + 0.005], shell: true }));
       gShell.add(rbox(3.4, 0.02, 0.05, 0.003, 'steelDark', { pos: [0, by1 - 0.365, L.bz1 + 0.022] }));
       // techo del cuerpo con marco de la ventana (tapa)
+      // tornillería visible de las cubiertas (filas de tornillos hexagonales de M6)
+      const scr = [];
+      for (let i = 0; i < 34; i++) { const x = -1.72 + i * 3.44 / 33; scr.push([x, by1 - 0.075, bz0 - 0.016], [x, by0 + 0.075, bz0 - 0.016]); }
+      for (let j = 0; j < 8; j++) { const y = by0 + 0.1 + j * (by1 - by0 - 0.2) / 7; scr.push([-1.775, y, bz0 - 0.016], [1.775, y, bz0 - 0.016]); }
+      gShell.add(bolts(scr, 0.005, 0.012, 'nz', { mat: 'steel' }));
+      const scF = []; for (let i = 0; i < 34; i++) { const x = -1.72 + i * 3.44 / 33; scF.push([x, by1 - 0.335, L.bz1 + 0.014], [x, by0 + 0.21, L.bz1 + 0.014]); }
+      gShell.add(bolts(scF, 0.005, 0.012, 'z', { mat: 'steel' }));
       // (1) TUERCA DIN 11851 NW25 y (2) JUNTA RACORD -> boquilla sanitaria de drenaje frontal
       const g1 = el(C, 1), g2 = el(C, 2);
       const dx = 1.35, dy = 0.44, dz = L.bz1 + 0.12;
